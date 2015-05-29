@@ -103,7 +103,7 @@ func (vc *Conn) loopRoutine(times int, loopChan chan *LoopRecord, errChan chan e
 			if c > 0 {
 				log.Printf("Got bytes: %v", pkt[:c])
 			}
-			errChan <- fmt.Errorf("Error during loop read: %v\n")
+			errChan <- fmt.Errorf("Error during loop read: %v\n", err)
 			return
 		}
 		loopChan <- parseLoop(pkt)

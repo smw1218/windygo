@@ -86,13 +86,13 @@ func (vc *Conn) GetArchiveStream(archiveChan chan *ArchiveRecord, errChan chan e
 func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) {
 	pkt := make([]byte, 267)
 	for i := 0; i < PAGE_COUNT; i++ {
-		vc.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+		vc.conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 		c, err := io.ReadFull(vc.buf, pkt)
 		if err != nil {
 			if c > 0 {
 				log.Printf("Got bytes: %v", pkt[:c])
 			}
-			errChan <- fmt.Errorf("Error during loop read: %v\n")
+			errChan <- fmt.Errorf("Error during DMP read: %v\n", err)
 			return
 		}
 		ars, err := parseArchive(pkt)
