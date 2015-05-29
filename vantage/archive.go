@@ -115,7 +115,7 @@ func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) 
 			errChan <- fmt.Errorf("Error during DMP read: %v\n", err)
 			return
 		}
-		log.Printf("%v Got pkt: %v\n", i, pkt[0:10])
+		log.Printf("%v of %v Got pkt: %v..%v\n", i, c, pkt[0:10], pkt[len(pkt)-10:])
 		ars, err := parseArchive(pkt)
 		if err != nil {
 			//TODO
