@@ -86,7 +86,7 @@ func (vc *Conn) GetArchiveStream(archiveChan chan *ArchiveRecord, errChan chan e
 
 func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) {
 	pkt := make([]byte, PAGE_SIZE)
-	_, err = vc.conn.Write([]byte{ACK})
+	_, err := vc.conn.Write([]byte{ACK})
 	if err != nil {
 		errChan <- fmt.Errorf("Error first DMP ACK: %v\n", err)
 		return
