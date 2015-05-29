@@ -9,6 +9,7 @@ import (
 )
 
 const PAGE_COUNT = 513
+const PAGE_SIZE = 264
 const RECORDS_PER_PAGE = 5
 const DATA_RECORD_LENGTH = 52
 
@@ -84,7 +85,7 @@ func (vc *Conn) GetArchiveStream(archiveChan chan *ArchiveRecord, errChan chan e
 }
 
 func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) {
-	pkt := make([]byte, 267)
+	pkt := make([]byte, PAGE_SIZE)
 	for i := 0; i < PAGE_COUNT; i++ {
 		vc.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
 		c, err := io.ReadFull(vc.buf, pkt)
