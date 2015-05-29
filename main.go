@@ -29,12 +29,15 @@ func main() {
 		}
 
 		ars, err := vc.GetArchiveRecords()
+		if ars != nil {
+			for _, ar := range ars {
+				fmt.Printf("I:%v\tJ:%v\t%v\t%v\t%v\n", ar.ArchivePage, ar.ArchivePageRecord, ar.ArchiveTime, ar.WindAvg, ar.OutsideTemp)
+			}
+		}
 		if err != nil {
 			log.Fatalf("Error getting archive: %v\n", err)
 		}
-		for _, ar := range ars {
-			fmt.Printf("I:%v\tJ:%v\t%v\t%v\t%v\n", ar.ArchivePage, ar.ArchivePageRecord, ar.ArchiveTime, ar.WindAvg, ar.OutsideTemp)
-		}
+
 		return
 	}
 	db, err := db.NewMysql("windygo", "")

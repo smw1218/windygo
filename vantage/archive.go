@@ -123,7 +123,7 @@ func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) 
 			archiveChan <- ar
 		}
 		var toSend byte = ACK
-		if i > 3 {
+		if i > 5 {
 			toSend = ESC
 		}
 		_, err = vc.conn.Write([]byte{toSend})
