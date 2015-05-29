@@ -15,34 +15,36 @@ const DATA_RECORD_LENGTH = 52
 
 // Rev B
 type ArchiveRecord struct {
-	ArchiveTime     time.Time
-	OutsideTemp     float32
-	HighOutsideTemp float32
-	LowOutsideTemp  float32
-	Rainfall        int
-	HighRainRate    int
-	Barometer       float32
-	SolarRad        int
-	WindSamples     int
-	InsideTemp      float32
-	InsideHumidity  int
-	OutsideHumidity int
-	WindAvg         int
-	WindMax         int
-	WindMaxDir      int
-	WindDir         int
-	UVIndexAvg      float32
-	ET              float32
-	HighSolarRad    int
-	UVIndexMax      int
-	ForecastRule    int
-	LeafTemp        []int //2
-	LeafWetness     []int //2
-	SoilTemp        []int //4
-	RecordType      int
-	ExtraHumidities []int //2
-	ExtraTemps      []int //3
-	SoilMoistures   []int //4
+	ArchivePage       int
+	ArchivePageRecord int
+	ArchiveTime       time.Time
+	OutsideTemp       float32
+	HighOutsideTemp   float32
+	LowOutsideTemp    float32
+	Rainfall          int
+	HighRainRate      int
+	Barometer         float32
+	SolarRad          int
+	WindSamples       int
+	InsideTemp        float32
+	InsideHumidity    int
+	OutsideHumidity   int
+	WindAvg           int
+	WindMax           int
+	WindMaxDir        int
+	WindDir           int
+	UVIndexAvg        float32
+	ET                float32
+	HighSolarRad      int
+	UVIndexMax        int
+	ForecastRule      int
+	LeafTemp          []int //2
+	LeafWetness       []int //2
+	SoilTemp          []int //4
+	RecordType        int
+	ExtraHumidities   []int //2
+	ExtraTemps        []int //3
+	SoilMoistures     []int //4
 }
 
 type sortedArchive []*ArchiveRecord
@@ -70,7 +72,7 @@ func (vc *Conn) GetArchiveRecords() ([]*ArchiveRecord, error) {
 			}
 			ars = append(ars, ar)
 		case err = <-errChan:
-			return nil, err
+			return ars, err
 		}
 	}
 }
@@ -120,11 +122,12 @@ func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) 
 		for _, ar := range ars {
 			archiveChan <- ar
 		}
-		_, err = vc.conn.Write([]byte{ACK})
+		_, err = vc.conn.Write([]byte{ESC})
 		if err != nil {
 			errChan <- fmt.Errorf("Error during DMP ACK: %v\n", err)
 			return
 		}
+		break
 	}
 	close(archiveChan)
 }
@@ -139,34 +142,36 @@ func parseArchive(pkt []byte) ([]*ArchiveRecord, error) {
 		}
 		// TODO CRC
 		ar := &ArchiveRecord{
-			ArchiveTime:     tm,
-			OutsideTemp:     float32(toInt(dr[4], dr[5])) / 10,
-			HighOutsideTemp: float32(toInt(dr[6], dr[7])) / 10,
-			LowOutsideTemp:  float32(toInt(dr[8], dr[9])) / 10,
-			Rainfall:        toInt(dr[10], dr[11]),
-			HighRainRate:    toInt(dr[12], dr[13]),
-			Barometer:       float32(toInt(dr[14], dr[15])) / 1000,
-			SolarRad:        toInt(dr[16], dr[17]),
-			WindSamples:     toInt(dr[18], dr[19]),
-			InsideTemp:      float32(toInt(dr[20], dr[21])) / 10,
-			InsideHumidity:  int(dr[22]),
-			OutsideHumidity: int(dr[23]),
-			WindAvg:         int(dr[24]),
-			WindMax:         int(dr[25]),
-			WindMaxDir:      archiveDirectionLookup[int(26)],
-			WindDir:         archiveDirectionLookup[int(27)],
-			UVIndexAvg:      float32(int(dr[28])) / 10,
-			ET:              float32(int(dr[29])) / 1000,
-			HighSolarRad:    toInt(dr[30], dr[31]),
-			UVIndexMax:      int(dr[32]),
-			ForecastRule:    int(dr[33]),
-			LeafTemp:        nil,
-			LeafWetness:     nil,
-			SoilTemp:        nil,
-			RecordType:      int(dr[42]),
-			ExtraHumidities: nil,
-			ExtraTemps:      nil,
-			SoilMoistures:   nil,
+			ArchivePage:       int(pkt[0]),
+			ArchivePageRecord: i,
+			ArchiveTime:       tm,
+			OutsideTemp:       float32(toInt(dr[4], dr[5])) / 10,
+			HighOutsideTemp:   float32(toInt(dr[6], dr[7])) / 10,
+			LowOutsideTemp:    float32(toInt(dr[8], dr[9])) / 10,
+			Rainfall:          toInt(dr[10], dr[11]),
+			HighRainRate:      toInt(dr[12], dr[13]),
+			Barometer:         float32(toInt(dr[14], dr[15])) / 1000,
+			SolarRad:          toInt(dr[16], dr[17]),
+			WindSamples:       toInt(dr[18], dr[19]),
+			InsideTemp:        float32(toInt(dr[20], dr[21])) / 10,
+			InsideHumidity:    int(dr[22]),
+			OutsideHumidity:   int(dr[23]),
+			WindAvg:           int(dr[24]),
+			WindMax:           int(dr[25]),
+			WindMaxDir:        archiveDirectionLookup[int(26)],
+			WindDir:           archiveDirectionLookup[int(27)],
+			UVIndexAvg:        float32(int(dr[28])) / 10,
+			ET:                float32(int(dr[29])) / 1000,
+			HighSolarRad:      toInt(dr[30], dr[31]),
+			UVIndexMax:        int(dr[32]),
+			ForecastRule:      int(dr[33]),
+			LeafTemp:          nil,
+			LeafWetness:       nil,
+			SoilTemp:          nil,
+			RecordType:        int(dr[42]),
+			ExtraHumidities:   nil,
+			ExtraTemps:        nil,
+			SoilMoistures:     nil,
 		}
 		ret = append(ret, ar)
 	}

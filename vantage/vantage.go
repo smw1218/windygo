@@ -13,6 +13,7 @@ const ACK = 0x6
 const NACK = 0x21
 const CANCEL = 0x18
 const DMPNACK = 0x15
+const ESC = 0x1b
 
 type ConnState int
 

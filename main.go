@@ -33,8 +33,9 @@ func main() {
 			log.Fatalf("Error getting archive: %v\n", err)
 		}
 		for _, ar := range ars {
-			fmt.Printf("%v\t%v", ar.ArchiveTime, ar.WindAvg)
+			fmt.Printf("I:%v\tJ:%v\t%v\t%v\n", ar.ArchivePage, ar.ArchivePageRecord, ar.ArchiveTime, ar.WindAvg)
 		}
+		return
 	}
 	db, err := db.NewMysql("windygo", "")
 	if err != nil {
