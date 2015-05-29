@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"sort"
+	//"sort"
 	"time"
 )
 
 const PAGE_COUNT = 513
-const PAGE_SIZE = 264
+const PAGE_SIZE = 267
 const RECORDS_PER_PAGE = 5
 const DATA_RECORD_LENGTH = 52
 
@@ -67,7 +67,7 @@ func (vc *Conn) GetArchiveRecords() ([]*ArchiveRecord, error) {
 		case ar := <-archiveChan:
 			if ar == nil {
 				// Channel closed
-				sort.Sort(ars)
+				//sort.Sort(ars)
 				return ars, nil
 			}
 			ars = append(ars, ar)
