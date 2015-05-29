@@ -1,8 +1,13 @@
 package plot
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/smw1218/windygo/db"
+	"io"
+	"os"
+	"os/exec"
+	"time"
 )
 
 // mapping of direction to custom font
@@ -25,7 +30,138 @@ var cardinals map[int]string = map[int]string{
 	337: "", // NNW	f10f
 }
 
+const summarySecondsForGraph = 300
+const summarySecondsForGeneration = 60
+const gpFormat = "%Y-%m-%d_%H:%M:%S"
+
 type GnuPlot struct {
-	saved []*db.Rollup
-	last  *db.Rollup
+	// TODO mutex
+	saved         []*db.Summary
+	nextSave      int
+	currentMinute *db.Summary
+	summaryChan   chan *db.Summary
+	ErrChan       chan error
 }
+
+func NewGnuPlot(mysql *db.Mysql) (*GnuPlot, error) {
+	gp := &GnuPlot{}
+	var err error
+	gp.saved, err = mysql.GetSummaries(12*time.Hour, summarySecondsForGraph)
+	if err != nil {
+		return nil, err
+	}
+	gp.summaryChan = mysql.SavedChan
+	gp.ErrChan = make(chan error, 1)
+	go gp.generator()
+	return gp, nil
+}
+
+func (gp *GnuPlot) generator() {
+	for summary := range gp.summaryChan {
+		if summary.SummarySeconds == summarySecondsForGraph {
+			gp.saved[gp.nextSave%len(gp.saved)] = summary
+			gp.nextSave++
+		} else if summary.SummarySeconds == summarySecondsForGeneration {
+			gp.currentMinute = summary
+			gp.createPlot()
+		}
+	}
+}
+
+func (gp *GnuPlot) createPlot() {
+	cmd := exec.Command("gnuplot")
+	rd, wr := io.Pipe()
+	cmd.Stdin = rd
+	cmd.Stderr = os.Stderr
+	go gp.writeData(bufio.NewWriter(wr), wr)
+	err := cmd.Run()
+	if err != nil {
+		gp.sendError(fmt.Errorf("Error running gnuplot: %v", err))
+	}
+}
+
+func (gp *GnuPlot) sendError(err error) {
+	select {
+	case gp.ErrChan <- err:
+	default:
+	}
+}
+
+func (gp *GnuPlot) writeData(w *bufio.Writer, closeme *io.PipeWriter) {
+	defer closeme.Close()
+	//write the script first
+	_, err := w.WriteString(gnuPlotScript)
+	if err != nil {
+		gp.sendError(fmt.Errorf("Process write err: %v", err))
+	}
+
+	lensaved := len(gp.saved)
+	// write the avg data
+	for i := 0; i < lensaved; i++ {
+		summary := gp.saved[(i+gp.nextSave)%lensaved]
+		if summary != nil {
+			_, err = w.WriteString(fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindAvg))
+			if err != nil {
+				gp.sendError(fmt.Errorf("Process write err: %v", err))
+			}
+		}
+	}
+	w.WriteString("e\n")
+
+	// write the lull data
+	for i := 0; i < lensaved; i++ {
+		summary := gp.saved[(i+gp.nextSave)%lensaved]
+		if summary != nil {
+			_, err = w.WriteString(fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindLull))
+			if err != nil {
+				gp.sendError(fmt.Errorf("Process write err: %v", err))
+			}
+		}
+	}
+	w.WriteString("e\n")
+
+	// write the gust data
+	for i := 0; i < lensaved; i++ {
+		summary := gp.saved[(i+gp.nextSave)%lensaved]
+		if summary != nil {
+			_, err = w.WriteString(fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindGust))
+			if err != nil {
+				gp.sendError(fmt.Errorf("Process write err: %v", err))
+			}
+		}
+	}
+	w.WriteString("e\n")
+
+	// write the direction data
+	for i := 0; i < lensaved; i++ {
+		summary := gp.saved[(i+gp.nextSave)%lensaved]
+		if summary != nil && summary.EndTime.Equal(summary.EndTime.Truncate(15*time.Minute)) {
+			_, err = w.WriteString(fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), cardinals[summary.WindDirAvgCardinal()]))
+			if err != nil {
+				gp.sendError(fmt.Errorf("Process write err: %v", err))
+			}
+		}
+	}
+	w.WriteString("e\n")
+}
+
+const gnuPlotScript = `
+set term png size 600, 400 truecolor enhanced
+set output "windreport.png"
+set xdata time
+set timefmt "%Y-%m-%d_%H:%M:%S"
+set format x "%l%p\n%m/%d"
+set autoscale xfixmin
+set autoscale xfixmax
+set autoscale x2fixmin
+set autoscale x2fixmax
+set xtics 3600 rangelimited
+set mxtics 4
+set grid xtics ytics mxtics
+set style fill transparent solid 0.50 noborder
+set arrow size 5, 45 front
+plot [] [0:30<*] "-" using 1:2 title "Wind Avg (mph)" with filledcurves y1=0, \
+ "-" using 1:2 title "Wind Lull" with lines \
+ "-" using 1:2 title "Wind Gust" with lines \
+ "-" using 1:(50):2 title "" with labels font "compass-arrows,24"
+`

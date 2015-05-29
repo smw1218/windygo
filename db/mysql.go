@@ -284,3 +284,55 @@ func (m *Mysql) save(rollup *Rollup) {
 	default:
 	}
 }
+
+// 5 minutes
+const selectRecent string = "select * from summaries where end_time > ? and summary_seconds = ? order by end_time desc"
+
+func (m *Mysql) GetSummaries(reportSize time.Duration, summarySecondsForReport int) ([]*Summary, error) {
+	rows, err := m.DB.Query(selectRecent, time.Now().Add(-reportSize), summarySecondsForReport)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to select summaries: %v", err)
+	}
+	slenmin := int(reportSize / (time.Duration(summarySecondsForReport) * time.Second))
+	ss := make([]*Summary, slenmin)
+	i := 0
+	for rows.Next() {
+		if i == slenmin {
+			rows.Close()
+			log.Printf("Got too many summary records from DB")
+			break
+		}
+		s := &Summary{}
+		err := rows.Scan(
+			&s.Id,
+			&s.StartTime,
+			&s.EndTime,
+			&s.Measurements,
+			&s.SummarySeconds,
+			&s.WindAvg,
+			&s.WindGust,
+			&s.WindLull,
+			&s.WindStddev,
+			&s.WindDirectionAvg,
+			&s.WindDirectionMin,
+			&s.WindDirectionMax,
+			&s.BarometerAvg,
+			&s.BarometerStart,
+			&s.OutsideTempAvg,
+			&s.OutsideHumidityAvg)
+		if err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("Error scanning summaries: %v", err)
+		}
+		ss[i] = s
+		i++
+	}
+	if i < slenmin {
+		log.Printf("Not enough summary records for report: %v", i)
+	}
+	// reverse the array so it's in chronological order and any missing vals are at the beginning
+	for j := 0; j < slenmin/2; j++ {
+		ss[j], ss[slenmin-j-1] = ss[slenmin-j-1], ss[j]
+	}
+	return ss, nil
+}

@@ -10,6 +10,9 @@ import (
 )
 
 const ACK = 0x6
+const NACK = 0x21
+const CANCEL = 0x18
+const DMPNACK = 0x15
 
 type ConnState int
 
@@ -96,7 +99,7 @@ func (vc *Conn) loopRoutine(times int, loopChan chan *LoopRecord, errChan chan e
 	for i := 0; i < times; i++ {
 		vc.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 		c, err := io.ReadFull(vc.buf, pkt)
-		if err != nil {
+		if err != nil || (pkt[0] != byte('L') && pkt[1] != byte('O') && pkt[2] != byte('O')) {
 			if c > 0 {
 				log.Printf("Got bytes: %v", pkt[:c])
 			}
