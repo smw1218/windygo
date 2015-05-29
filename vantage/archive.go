@@ -88,10 +88,10 @@ func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) 
 	pkt := make([]byte, PAGE_SIZE)
 	j := 0
 	for {
-		vc.conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+		vc.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
 		n, err := vc.conn.Read(pkt[j:])
 		if err != nil {
-			errChan <- fmt.Errorf("Err: %v\nDMP data: %v\n", err, pkt)
+			errChan <- fmt.Errorf("Err: %v\nDMP data: %v\n", err, pkt[:j+n])
 			return
 		}
 		j += n
