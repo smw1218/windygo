@@ -104,8 +104,8 @@ func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) 
 			j += n
 		}
 	*/
+	pkt := make([]byte, PAGE_SIZE)
 	for i := 0; i < PAGE_COUNT; i++ {
-		pkt := make([]byte, PAGE_SIZE)
 		vc.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
 		c, err := io.ReadFull(vc.buf, pkt)
 		if err != nil {
@@ -115,6 +115,7 @@ func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) 
 			errChan <- fmt.Errorf("Error during DMP read: %v\n", err)
 			return
 		}
+		log.Printf("%v Got pkt: %v\n", i, pkt[0:10])
 		ars, err := parseArchive(pkt)
 		if err != nil {
 			//TODO
