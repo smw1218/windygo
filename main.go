@@ -33,7 +33,7 @@ func main() {
 			log.Fatalf("Error getting archive: %v\n", err)
 		}
 		for _, ar := range ars {
-			fmt.Printf("I:%v\tJ:%v\t%v\t%v\n", ar.ArchivePage, ar.ArchivePageRecord, ar.ArchiveTime, ar.WindAvg)
+			fmt.Printf("I:%v\tJ:%v\t%v\t%v\t%v\n", ar.ArchivePage, ar.ArchivePageRecord, ar.ArchiveTime, ar.WindAvg, ar.OutsideTemp)
 		}
 		return
 	}

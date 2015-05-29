@@ -122,12 +122,18 @@ func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) 
 		for _, ar := range ars {
 			archiveChan <- ar
 		}
-		_, err = vc.conn.Write([]byte{ESC})
+		var toSend byte = ACK
+		if i > 3 {
+			toSend = ESC
+		}
+		_, err = vc.conn.Write([]byte{toSend})
 		if err != nil {
 			errChan <- fmt.Errorf("Error during DMP ACK: %v\n", err)
 			return
 		}
-		break
+		if toSend == ESC {
+			break
+		}
 	}
 	close(archiveChan)
 }
