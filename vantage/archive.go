@@ -86,6 +86,16 @@ func (vc *Conn) GetArchiveStream(archiveChan chan *ArchiveRecord, errChan chan e
 
 func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) {
 	pkt := make([]byte, PAGE_SIZE)
+	j := 0
+	for {
+		vc.conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+		n, err := vc.conn.Read(pkt[j:])
+		if err != nil {
+			errChan <- fmt.Errorf("Err: %v\nDMP data: %v\n", err, pkt)
+			return
+		}
+		j += n
+	}
 	for i := 0; i < PAGE_COUNT; i++ {
 		vc.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
 		c, err := io.ReadFull(vc.buf, pkt)
@@ -102,6 +112,10 @@ func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) 
 		}
 		for _, ar := range ars {
 			archiveChan <- ar
+		}
+		_, err = vc.conn.Write([]byte{ACK})
+		if err != nil {
+			errChan <- fmt.Errorf("Error during DMP ACK: %v\n", err)
 		}
 	}
 	close(archiveChan)
