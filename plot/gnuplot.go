@@ -229,8 +229,8 @@ set style fill transparent solid 0.30
 set style line 1 lt rgb "blue" lw 2 pt 0
 set style line 2 lt rgb "sea-green" lw 2 pt 0
 set style line 3 lt rgb "dark-red" lw 2 pt 0
-plot [] [0:40<*] "-" using 1:2 title "Wind Avg (mph)" with filledcurves y1=0, \
- "-" using 1:2 title "Wind Lull" with lines lw 2, \
- "-" using 1:2 title "Wind Gust" with lines lw 2, \
+plot [] [0:40<*] "-" using 1:2 title "Wind Avg (mph)" with filledcurves y1=0 ls 1, \
+ "-" using 1:2 title "Wind Lull" with lines ls 2, \
+ "-" using 1:2 title "Wind Gust" with lines ls 3, \
  "-" using 1:(26):2 title "" with labels font "CompassArrows,24"
 `
