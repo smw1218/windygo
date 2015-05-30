@@ -92,7 +92,7 @@ func (vc *Conn) GetArchiveStream(archiveChan chan *ArchiveRecord, errChan chan e
 		return fmt.Errorf("DMPAFT timestamp command failed: %v", err)
 	}
 	vc.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
-	c, err := io.ReadFull(vc.buf, dateBytes[:5])
+	c, err := io.ReadFull(vc.buf, dateBytes)
 	if err != nil {
 		if c > 0 {
 			log.Printf("Got bytes: %v", dateBytes[:c])
@@ -102,9 +102,9 @@ func (vc *Conn) GetArchiveStream(archiveChan chan *ArchiveRecord, errChan chan e
 	log.Printf("%v Pages: %v FRFR: %v crcC: %x crcS: %x\n",
 		dateBytes[:5],
 		toInt(dateBytes[0], dateBytes[1]),
-		int(dateBytes[2]),
-		crcData(dateBytes[:3]),
-		toInt(dateBytes[3], dateBytes[4]))
+		toInt(dateBytes[2], dateBytes[3]),
+		crcData(dateBytes[:4]),
+		toInt(dateBytes[4], dateBytes[5]))
 
 	go vc.dmpArchive(archiveChan, errChan)
 	return nil
