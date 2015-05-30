@@ -13,8 +13,8 @@ import (
 
 var Intervals = []time.Duration{time.Minute, 5 * time.Minute, 10 * time.Minute}
 
-const DegreesPerRadian = 360 / (2 * math.Pi)
-const RadiansPerDegree = (2 * math.Pi) / 360
+const DegreesPerRadian = 180 / math.Pi
+const RadiansPerDegree = math.Pi / 180
 const summariesTable string = `
 CREATE TABLE IF NOT EXISTS summaries (
 	id 						integer AUTO_INCREMENT PRIMARY KEY,
@@ -152,7 +152,11 @@ func (r *Rollup) WindStddev() float64 {
 	return math.Sqrt((float64(r.WindSum2) - float64(r.WindSum*r.WindSum)/float64(r.Count)) / float64(r.Count))
 }
 func (r *Rollup) WindDirAvg() int64 {
-	return int64(math.Atan2(r.WindDirXSum, r.WindDirYSum)*DegreesPerRadian + 0.5)
+	rads := math.Atan2(r.WindDirySum, r.WindDirXSum)
+	if rads < 0 {
+		rads += 2 * math.Pi
+	}
+	return int64(rads*DegreesPerRadian + 0.5)
 }
 
 func (r *Rollup) BarometerAvg() float64 {

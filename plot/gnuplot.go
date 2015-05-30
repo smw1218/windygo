@@ -33,7 +33,9 @@ var cardinals map[int]string = map[int]string{
 
 const summarySecondsForGraph = 300
 const summarySecondsForGeneration = 60
-const gpFormat = "%Y-%m-%d_%H:%M:%S"
+const gpFormat = "2006-01-02_15:04:05"
+
+// Mon Jan 2 15:04:05 -0700 MST 2006
 
 type GnuPlot struct {
 	// TODO mutex
