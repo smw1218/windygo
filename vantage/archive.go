@@ -116,7 +116,7 @@ func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) 
 			return
 		}
 		crcCalc := int(crcData(pkt[0 : PAGE_SIZE-2]))
-		crcSent := toInt(pkt[PAGE_SIZE-2], pkt[PAGE_SIZE-1])
+		crcSent := toInt(pkt[PAGE_SIZE-1], pkt[PAGE_SIZE-2])
 
 		log.Printf("%v of %v Got pkt: %v crcC: %x s: %x\n", i, c, pkt, crcCalc, crcSent)
 		var toSend byte = ACK
