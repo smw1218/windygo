@@ -199,6 +199,8 @@ func CollectDataForever(host string, handler LoopHandler) {
 			err = vc.Loop(60, loopChan, errChan)
 			if err != nil {
 				log.Printf("Error from loop: %v\n", err)
+				vc.Close()
+				break
 			}
 			err = <-errChan
 			if err != nil {
