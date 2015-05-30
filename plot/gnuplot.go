@@ -69,6 +69,7 @@ func (gp *GnuPlot) generator() {
 }
 
 func (gp *GnuPlot) createPlot() {
+	log.Printf("Creating plot")
 	cmd := exec.Command("gnuplot")
 	rd, wr := io.Pipe()
 	cmd.Stdin = rd

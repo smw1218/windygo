@@ -210,7 +210,7 @@ func (s *Summary) insert() []interface{} {
 }
 
 func NewMysql(user, password string) (*Mysql, error) {
-	db, err := sql.Open("mysql", fmt.Sprintf("%v:%v@/windygo", user, password))
+	db, err := sql.Open("mysql", fmt.Sprintf("%v:%v@/windygo?parseTime=true", user, password))
 	if err != nil {
 		return nil, fmt.Errorf("Error connecting to mysql: %v", err)
 	}
