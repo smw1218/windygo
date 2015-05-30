@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS summaries (
 	barometer_avg			float,
 	barometer_start			float,
 	outside_temp_avg		float,
-	humidity_avg			float,
+	outside_humidity_avg	float,
 	INDEX end_time_idx (end_time),
 	INDEX summary_minutes_idx (summary_seconds)
 )
@@ -71,7 +71,7 @@ var insertCols []string = []string{
 	"start_time", "end_time", "measurments", "summary_seconds", "wind_avg",
 	"wind_gust", "wind_lull", "wind_stddev", "wind_direction_avg",
 	"wind_direction_min", "wind_direction_max", "barometer_avg",
-	"barometer_start", "outside_temp_avg", "humidity_avg",
+	"barometer_start", "outside_temp_avg", "outside_humidity_avg",
 }
 
 type Mysql struct {
@@ -189,23 +189,23 @@ func (r *Rollup) Summary() *Summary {
 
 func (s *Summary) insert() []interface{} {
 	//(start_time,end_time,measurments,summary_seconds,wind_avg,wind_gust,wind_lull,wind_stddev,
-	//wind_direction_avg,wind_direction_min,wind_direction_max,barometer_avg,barometer_start,outside_temp_avg,humidity_avg)
+	//wind_direction_avg,wind_direction_min,wind_direction_max,barometer_avg,barometer_start,outside_temp_avg,outside_humidity_avg)
 	vals := make([]interface{}, len(insertCols))
 	vals[0] = s.StartTime
 	vals[1] = s.EndTime
 	vals[2] = s.Measurements
-	vals[4] = s.SummarySeconds
-	vals[5] = s.WindAvg
-	vals[6] = s.WindGust
-	vals[7] = s.WindLull
-	vals[8] = s.WindStddev
-	vals[9] = s.WindDirectionAvg
-	vals[10] = s.WindDirectionMin
-	vals[11] = s.WindDirectionMax
-	vals[12] = s.BarometerAvg
-	vals[13] = s.BarometerStart
-	vals[14] = s.OutsideTempAvg
-	vals[15] = s.OutsideHumidityAvg
+	vals[3] = s.SummarySeconds
+	vals[4] = s.WindAvg
+	vals[5] = s.WindGust
+	vals[6] = s.WindLull
+	vals[7] = s.WindStddev
+	vals[8] = s.WindDirectionAvg
+	vals[9] = s.WindDirectionMin
+	vals[10] = s.WindDirectionMax
+	vals[11] = s.BarometerAvg
+	vals[12] = s.BarometerStart
+	vals[13] = s.OutsideTempAvg
+	vals[14] = s.OutsideHumidityAvg
 	return vals
 }
 

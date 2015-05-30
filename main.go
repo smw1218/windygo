@@ -22,6 +22,9 @@ func main() {
 	flag.BoolVar(&doDmp, "dmp", false, "run archive dump and exit")
 	flag.Parse()
 
+	// On my unit, dmp didn't work (it was missing random bytes)
+	// The DMPAFT worked but the data was all screwed up with dates jumping around
+	// also some of the dates are in the future (multiple days)
 	if doDmp {
 		vc, err := vantage.Dial(host)
 		if err != nil {
