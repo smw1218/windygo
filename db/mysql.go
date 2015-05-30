@@ -152,7 +152,7 @@ func (r *Rollup) WindStddev() float64 {
 	return math.Sqrt((float64(r.WindSum2) - float64(r.WindSum*r.WindSum)/float64(r.Count)) / float64(r.Count))
 }
 func (r *Rollup) WindDirAvg() int64 {
-	rads := math.Atan2(r.WindDirySum, r.WindDirXSum)
+	rads := math.Atan2(r.WindDirYSum, r.WindDirXSum)
 	if rads < 0 {
 		rads += 2 * math.Pi
 	}
