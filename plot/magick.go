@@ -23,7 +23,7 @@ const currentCommand = `convert -size 100x400 canvas:white \
 -pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,235 "Temp"' \
 -pointsize 20 -fill black -draw 'text 10,265 "%0.1f°"' \
 -pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,295 "Barometer"' \
--pointsize 20 -fill black -draw 'text 10,325 "%3f"' \
+-pointsize 20 -fill black -draw 'text 10,325 "%0.3f"' \
 -pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,355 "Humidity"' \
 -pointsize 20 -fill black -draw 'text 10,385 "%v%%"' \
 -font CompassArrows -pointsize 20 -fill black -draw 'text 60,60 "%v"' \
@@ -41,7 +41,8 @@ func currentData(c *db.Summary) error {
 		c.WindGust,
 		c.OutsideTempAvg,
 		c.BarometerAvg,
-		c.OutsideHumidityAvg)
+		c.OutsideHumidityAvg,
+		cardinals[c.WindDirAvgCardinal()])
 	log.Printf("command: %v", formatted)
 	matches := splitter.FindAllStringSubmatch(formatted, -1)
 	args := make([]string, len(matches))
