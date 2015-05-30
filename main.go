@@ -60,6 +60,8 @@ func main() {
 			log.Printf("GP error: %v\n", err)
 		case err := <-db.ErrChan:
 			log.Printf("DB error: %v\n", err)
+		case err := <-gp.ErrChan:
+			log.Printf("GP error: %v\n", err)
 		}
 	}
 }
