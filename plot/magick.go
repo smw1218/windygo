@@ -9,18 +9,6 @@ import (
 	"strings"
 )
 
-// composite -dissolve 20 -geometry +150+150  Boardsports_on-top-01-300x93.png windreport.png watermarked.png
-
-func addWatermark() error {
-	cmd := exec.Command("composite", "-dissolve", "20", "-geometry", "+150+150", "Boardsports_on-top-01-300x93.png", "windreport.png", "watermarked.png")
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("Error running composite watermark: %v", err)
-	}
-	return nil
-}
-
 const currentCommand = `convert -size 100x400 canvas:white \
 -font Roboto -pointsize 24 -fill 'rgb(30,115,190)' -draw 'text 5,25 "Wind"' \
 -fill 'graya(50%, 0.5)' -draw 'line 0,30 100,30' \
@@ -63,6 +51,16 @@ func currentData(c *db.Summary) error {
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("Error running current: %v", err)
+	}
+	return nil
+}
+
+func finishReport() error {
+	cmd := exec.Command("./finish.sh")
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("Error running finish: %v", err)
 	}
 	return nil
 }

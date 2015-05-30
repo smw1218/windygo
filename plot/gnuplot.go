@@ -110,6 +110,14 @@ func (gp *GnuPlot) generator() {
 		} else if summary.SummarySeconds == summarySecondsForGeneration {
 			gp.currentMinute = summary
 			gp.createPlot()
+			err := currentData(summary)
+			if err != nil {
+				gp.sendError(fmt.Errorf("Error running current: %v", err))
+			}
+			err = finishReport()
+			if err != nil {
+				gp.sendError(fmt.Errorf("Error running current: %v", err))
+			}
 		}
 	}
 }
@@ -204,7 +212,7 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 const gnuPlotScript = `
 set encoding utf8
 set term png size 600, 400 truecolor enhanced font "RobotoCondensed"
-set output "windreport.png"
+set output "windgraph.png"
 set tmargin 2
 set label "Alameda" at graph 0,1.03 left font ",24"
 set xdata time
