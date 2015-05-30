@@ -3,7 +3,6 @@ package plot
 import (
 	"fmt"
 	"github.com/smw1218/windygo/db"
-	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -43,7 +42,7 @@ func currentData(c *db.Summary) error {
 		c.BarometerAvg,
 		c.OutsideHumidityAvg,
 		cardinals[c.WindDirAvgCardinal()])
-	log.Printf("command: %v", formatted)
+	//log.Printf("command: %v", formatted)
 	matches := splitter.FindAllStringSubmatch(formatted, -1)
 	args := make([]string, len(matches))
 	for i, match := range matches {

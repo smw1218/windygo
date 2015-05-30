@@ -214,7 +214,7 @@ set encoding utf8
 set term png size 600, 400 truecolor enhanced font "RobotoCondensed"
 set output "windgraph.png"
 set tmargin 2
-set label "Alameda" at graph 0,1.03 left font ",24"
+set label "Alameda" at graph 0,1.03 left font "RobotoCondensed,24"
 set xdata time
 set timefmt "%Y-%m-%d_%H:%M:%S"
 set format x "%l%p\n%m/%d"
