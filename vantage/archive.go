@@ -78,10 +78,34 @@ func (vc *Conn) GetArchiveRecords() ([]*ArchiveRecord, error) {
 }
 
 func (vc *Conn) GetArchiveStream(archiveChan chan *ArchiveRecord, errChan chan error) error {
-	err := vc.sendAckCommand("DMP\n")
+	err := vc.sendAckCommand("DMPAFT\n")
 	if err != nil {
 		return fmt.Errorf("DMP command failed: %v", err)
 	}
+	dateBytes := make([]byte, 6)
+	// TODO fill them in
+	crcDate := crcData(dateBytes[:4])
+	dateBytes[4] = byte(crcDate >> 8) // MSB first
+	dateBytes[5] = byte(crcDate & 0xFF)
+	err = vc.sendAckCommand(string(dateBytes))
+	if err != nil {
+		return fmt.Errorf("DMPAFT timestamp command failed: %v", err)
+	}
+	vc.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
+	c, err := io.ReadFull(vc.buf, dateBytes[:5])
+	if err != nil {
+		if c > 0 {
+			log.Printf("Got bytes: %v", dateBytes[:c])
+		}
+		return fmt.Errorf("Error during DMPAFT count reads: %v\n", err)
+	}
+	log.Printf("%v Pages: %v FRFR: %v crcC: %x crcS: %x\n",
+		dateBytes[:5],
+		toInt(dateBytes[0], dateBytes[1]),
+		int(dateBytes[2]),
+		crcData(dateBytes[:3]),
+		toInt(dateBytes[3], dateBytes[4]))
+
 	go vc.dmpArchive(archiveChan, errChan)
 	return nil
 }
