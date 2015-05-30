@@ -102,7 +102,7 @@ func (gp *GnuPlot) createPlot() {
 	cmd.Stdin = rd
 	cmd.Stderr = os.Stderr
 	var toWrite io.Writer = wr
-	f, err := os.OpenFile("gnuplot_input.data", os.O_CREATE|os.O_WRONLY|O_TRUNC, 0664)
+	f, err := os.OpenFile("gnuplot_input.data", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0664)
 	if err != nil {
 		gp.sendError(fmt.Errorf("Error running gnuplot: %v", err))
 	} else {
