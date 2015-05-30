@@ -115,15 +115,23 @@ func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) 
 			errChan <- fmt.Errorf("Error during DMP read: %v\n", err)
 			return
 		}
-		log.Printf("%v of %v Got pkt: %v crc: %x\n", i, c, pkt, crcData(pkt[0:PAGE_SIZE-2]))
-		ars, err := parseArchive(pkt)
-		if err != nil {
-			//TODO
-		}
-		for _, ar := range ars {
-			archiveChan <- ar
-		}
+		crcCalc := int(crcData(pkt[0 : PAGE_SIZE-2]))
+		crcSent := toInt(pkt[PAGE_SIZE-2], pkt[PAGE_SIZE-1])
+
+		log.Printf("%v of %v Got pkt: %v crcC: %x s: %x\n", i, c, pkt, crcCalc, crcSent)
 		var toSend byte = ACK
+		if crcCalc == crcSent {
+			ars, err := parseArchive(pkt)
+			if err != nil {
+				//TODO
+			}
+			for _, ar := range ars {
+				archiveChan <- ar
+			}
+		} else {
+			log.Printf("CRC failed, sending NACK")
+			toSend = NACK
+		}
 		if i > 5 {
 			toSend = ESC
 		}
