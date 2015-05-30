@@ -1,0 +1,110 @@
+{
+  "checksum": {
+    "previous": "93aae18257bc979e3ac1dd0db63105e423019b0fdea150357714a6e020756d8d",
+    "current": "93aae18257bc979e3ac1dd0db63105e423019b0fdea150357714a6e020756d8d"
+  },
+  "fonts": [
+    "CompassArrows/CompassArrows.ttf",
+    "CompassArrows/CompassArrows.svg",
+    "CompassArrows/CompassArrows.woff",
+    "CompassArrows/CompassArrows.eot"
+  ],
+  "glyphs": {
+    "000_n": {
+      "codepoint": 48,
+      "source": "./000_n.svg"
+    },
+    "022_nne": {
+      "codepoint": 49,
+      "source": "./022_nne.svg"
+    },
+    "045_ne": {
+      "codepoint": 50,
+      "source": "./045_ne.svg"
+    },
+    "067_ene": {
+      "codepoint": 51,
+      "source": "./067_ene.svg"
+    },
+    "090_e": {
+      "codepoint": 52,
+      "source": "./090_e.svg"
+    },
+    "112_ese": {
+      "codepoint": 53,
+      "source": "./112_ese.svg"
+    },
+    "135_se": {
+      "codepoint": 54,
+      "source": "./135_se.svg"
+    },
+    "157_sse": {
+      "codepoint": 55,
+      "source": "./157_sse.svg"
+    },
+    "180_s": {
+      "codepoint": 56,
+      "source": "./180_s.svg"
+    },
+    "202_ssw": {
+      "codepoint": 57,
+      "source": "./202_ssw.svg"
+    },
+    "225_sw": {
+      "codepoint": 97,
+      "source": "./225_sw.svg"
+    },
+    "247_wsw": {
+      "codepoint": 98,
+      "source": "./247_wsw.svg"
+    },
+    "270_w": {
+      "codepoint": 99,
+      "source": "./270_w.svg"
+    },
+    "292_wnw": {
+      "codepoint": 100,
+      "source": "./292_wnw.svg"
+    },
+    "315_nw": {
+      "codepoint": 101,
+      "source": "./315_nw.svg"
+    },
+    "337_nnw": {
+      "codepoint": 102,
+      "source": "./337_nnw.svg"
+    }
+  },
+  "options": {
+    "autowidth": false,
+    "config": "fontcustom.yml",
+    "css_selector": ".icon-{{glyph}}",
+    "debug": false,
+    "font_ascent": 448,
+    "font_descent": 64,
+    "font_design_size": 16,
+    "font_em": 512,
+    "font_name": "CompassArrows",
+    "force": true,
+    "input": {
+      "templates": ".",
+      "vectors": "."
+    },
+    "no_hash": true,
+    "output": {
+      "css": "CompassArrows",
+      "fonts": "CompassArrows",
+      "preview": "CompassArrows"
+    },
+    "preprocessor_path": null,
+    "quiet": false,
+    "templates": [
+      "css",
+      "preview"
+    ]
+  },
+  "templates": [
+    "CompassArrows/CompassArrows.css",
+    "CompassArrows/CompassArrows-preview.html"
+  ]
+}
