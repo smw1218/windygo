@@ -1,7 +1,7 @@
 package plot
 
 import (
-	"bufio"
+	//"bufio"
 	"fmt"
 	"github.com/smw1218/windygo/db"
 	"io"
@@ -52,7 +52,7 @@ func NewGnuPlot(mysql *db.Mysql) (*GnuPlot, error) {
 		return nil, err
 	}
 	gp.summaryChan = mysql.SavedChan
-	gp.ErrChan = make(chan error, 1)
+	gp.ErrChan = make(chan error, 5)
 	go gp.generator()
 	return gp, nil
 }
@@ -75,8 +75,15 @@ func (gp *GnuPlot) createPlot() {
 	rd, wr := io.Pipe()
 	cmd.Stdin = rd
 	cmd.Stderr = os.Stderr
-	go gp.writeData(bufio.NewWriter(wr), wr)
-	err := cmd.Run()
+	var toWrite io.Writer = wr
+	f, err := os.OpenFile("gpuplot_input.data", os.O_CREATE|os.O_WRONLY, 0)
+	if err != nil {
+		gp.sendError(fmt.Errorf("Error running gnuplot: %v", err))
+	} else {
+		toWrite = io.MultiWriter(wr, f)
+	}
+	go gp.writeData(toWrite, wr)
+	err = cmd.Run()
 	if err != nil {
 		gp.sendError(fmt.Errorf("Error running gnuplot: %v", err))
 	}
@@ -86,13 +93,14 @@ func (gp *GnuPlot) sendError(err error) {
 	select {
 	case gp.ErrChan <- err:
 	default:
+		log.Printf("Plot Error: %v\n", err)
 	}
 }
 
-func (gp *GnuPlot) writeData(w *bufio.Writer, closeme *io.PipeWriter) {
+func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 	defer closeme.Close()
 	//write the script first
-	_, err := w.WriteString(gnuPlotScript)
+	_, err := io.WriteString(w, gnuPlotScript)
 	if err != nil {
 		gp.sendError(fmt.Errorf("Process write err: %v", err))
 	}
@@ -102,49 +110,49 @@ func (gp *GnuPlot) writeData(w *bufio.Writer, closeme *io.PipeWriter) {
 	for i := 0; i < lensaved; i++ {
 		summary := gp.saved[(i+gp.nextSave)%lensaved]
 		if summary != nil {
-			_, err = w.WriteString(fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindAvg))
+			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindAvg))
 			if err != nil {
 				gp.sendError(fmt.Errorf("Process write err: %v", err))
 			}
 		}
 	}
-	w.WriteString("e\n")
+	io.WriteString(w, "e\n")
 
 	// write the lull data
 	for i := 0; i < lensaved; i++ {
 		summary := gp.saved[(i+gp.nextSave)%lensaved]
 		if summary != nil {
-			_, err = w.WriteString(fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindLull))
+			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindLull))
 			if err != nil {
 				gp.sendError(fmt.Errorf("Process write err: %v", err))
 			}
 		}
 	}
-	w.WriteString("e\n")
+	io.WriteString(w, "e\n")
 
 	// write the gust data
 	for i := 0; i < lensaved; i++ {
 		summary := gp.saved[(i+gp.nextSave)%lensaved]
 		if summary != nil {
-			_, err = w.WriteString(fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindGust))
+			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindGust))
 			if err != nil {
 				gp.sendError(fmt.Errorf("Process write err: %v", err))
 			}
 		}
 	}
-	w.WriteString("e\n")
+	io.WriteString(w, "e\n")
 
 	// write the direction data
 	for i := 0; i < lensaved; i++ {
 		summary := gp.saved[(i+gp.nextSave)%lensaved]
 		if summary != nil && summary.EndTime.Equal(summary.EndTime.Truncate(15*time.Minute)) {
-			_, err = w.WriteString(fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), cardinals[summary.WindDirAvgCardinal()]))
+			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), cardinals[summary.WindDirAvgCardinal()]))
 			if err != nil {
 				gp.sendError(fmt.Errorf("Process write err: %v", err))
 			}
 		}
 	}
-	w.WriteString("e\n")
+	io.WriteString(w, "e\n")
 }
 
 const gnuPlotScript = `

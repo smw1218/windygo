@@ -56,12 +56,10 @@ func main() {
 	go vantage.CollectDataForever(host, db.Record)
 	for {
 		select {
-		case err := <-gp.ErrChan:
-			log.Printf("GP error: %v\n", err)
-		case err := <-db.ErrChan:
-			log.Printf("DB error: %v\n", err)
-		case err := <-gp.ErrChan:
-			log.Printf("GP error: %v\n", err)
+		case err1 := <-gp.ErrChan:
+			log.Printf("GP error: %v\n", err1)
+		case err2 := <-db.ErrChan:
+			log.Printf("DB error: %v\n", err2)
 		}
 	}
 }
