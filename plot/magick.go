@@ -3,6 +3,7 @@ package plot
 import (
 	"fmt"
 	"github.com/smw1218/windygo/db"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -24,7 +25,7 @@ const currentCommand = `convert -size 100x400 canvas:white \
 -pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,295 "Barometer"' \
 -pointsize 20 -fill black -draw 'text 10,325 "%3f"' \
 -pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,355 "Humidity"' \
--pointsize 20 -fill black -draw 'text 10,385 "%v%"' \
+-pointsize 20 -fill black -draw 'text 10,385 "%v%%"' \
 -font CompassArrows -pointsize 20 -fill black -draw 'text 60,60 "%v"' \
 current.png
 `
@@ -41,10 +42,11 @@ func currentData(c *db.Summary) error {
 		c.OutsideTempAvg,
 		c.BarometerAvg,
 		c.OutsideHumidityAvg)
+	log.Printf("command: %v", formatted)
 	matches := splitter.FindAllStringSubmatch(formatted, -1)
 	args := make([]string, len(matches))
 	for i, match := range matches {
-		args[i] = match[0]
+		args[i] = strings.Replace(match[0], "'", "", -1)
 	}
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stderr = os.Stderr
