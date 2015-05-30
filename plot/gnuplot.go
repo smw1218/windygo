@@ -31,6 +31,27 @@ var cardinals map[int]string = map[int]string{
 	337: "", // NNW	f10f
 }
 
+/* for debugging font issues
+var cardinals map[int]string = map[int]string{
+	0:   "0", // N 		f100
+	22:  "1", // NNE	f101
+	45:  "2", // NE		f102
+	67:  "3", // ENE	f103
+	90:  "4", // E		f104
+	112: "5", // ESE	f105
+	135: "6", // SE		f106
+	157: "7", // SSE	f107
+	180: "8", // S		f108
+	202: "9", // SSW	f109
+	225: "a", // SW		f10a
+	247: "b", // WSW	f10b
+	270: "c", // W		f10c
+	292: "d", // WNW	f10d
+	315: "e", // NW		f10e
+	337: "f", // NNW	f10f
+}
+*/
+
 const summarySecondsForGraph = 300
 const summarySecondsForGeneration = 60
 const gpFormat = "2006-01-02_15:04:05"
@@ -159,7 +180,7 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 
 const gnuPlotScript = `
 set encoding utf8
-set term png size 600, 400 truecolor enhanced
+set term png size 600, 400 truecolor enhanced font "RobotoCondensed"
 set output "windreport.png"
 set xdata time
 set timefmt "%Y-%m-%d_%H:%M:%S"
@@ -174,7 +195,7 @@ set grid xtics ytics mxtics
 set style fill transparent solid 0.50 noborder
 set arrow size 5, 45 front
 plot [] [0:50<*] "-" using 1:2 title "Wind Avg (mph)" with filledcurves y1=0, \
- "-" using 1:2 title "Wind Lull" with lines, \
- "-" using 1:2 title "Wind Gust" with lines, \
- "-" using 1:(35):2 title "" with labels font "compass-arrows,24"
+ "-" using 1:2 title "Wind Lull" with lines lw 2, \
+ "-" using 1:2 title "Wind Gust" with lines lw 2, \
+ "-" using 1:(35):2 title "" with labels font "CompassArrows,24"
 `
