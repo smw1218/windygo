@@ -158,6 +158,7 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 }
 
 const gnuPlotScript = `
+set encoding utf8
 set term png size 600, 400 truecolor enhanced
 set output "windreport.png"
 set xdata time
