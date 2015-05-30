@@ -12,14 +12,14 @@ import (
 
 const currentCommand = `convert -size 100x400 canvas:white \
 -font Roboto -pointsize 24 -fill 'rgb(30,115,190)' -draw 'text 5,25 "Wind"' \
--fill 'graya(50%, 0.5)' -draw 'line 0,30 100,30' \
+-fill 'graya(50%%, 0.5)' -draw 'line 0,30 100,30' \
 -pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,60 "Avg"' \
 -pointsize 20 -fill black -draw 'text 10,90 "%0.1f"' \
 -pointsize 16 -fill black -draw 'text 50,90 "%v"' \
 -pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,120 "Lull/Gust"' \
 -pointsize 20 -fill black -draw 'text 10,150 "%0.0f/%0.0f"' \
 -pointsize 24 -fill 'rgb(30,115,190)' -draw 'text 5,200 "Weather"' \
--fill 'graya(50%, 0.5)' -draw 'line 0,205 100,205' \
+-fill 'graya(50%%, 0.5)' -draw 'line 0,205 100,205' \
 -pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,235 "Temp"' \
 -pointsize 20 -fill black -draw 'text 10,265 "%0.1f°"' \
 -pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,295 "Barometer"' \
