@@ -12,6 +12,7 @@ import (
 )
 
 // mapping of direction to custom font
+/*
 var cardinals map[int]string = map[int]string{
 	0:   "", // N 		f100
 	22:  "", // NNE	f101
@@ -30,8 +31,11 @@ var cardinals map[int]string = map[int]string{
 	315: "", // NW		f10e
 	337: "", // NNW	f10f
 }
+*/
 
-/* for debugging font issues
+//* for debugging font issues
+// gnuplot or libgd on raspian doesn't seem to support
+// the extended unicode range
 var cardinals map[int]string = map[int]string{
 	0:   "0", // N 		f100
 	22:  "1", // NNE	f101
@@ -50,7 +54,6 @@ var cardinals map[int]string = map[int]string{
 	315: "e", // NW		f10e
 	337: "f", // NNW	f10f
 }
-*/
 
 const summarySecondsForGraph = 300
 const summarySecondsForGeneration = 60
