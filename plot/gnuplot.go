@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/smw1218/windygo/db"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"time"
