@@ -55,6 +55,25 @@ var cardinals map[int]string = map[int]string{
 	337: "f", // NNW	f10f
 }
 
+var cardinalsText map[int]string = map[int]string{
+	0:   "N",   // N 		f100
+	22:  "NNE", // NNE	f101
+	45:  "NE",  // NE		f102
+	67:  "ENE", // ENE	f103
+	90:  "E",   // E		f104
+	112: "ESE", // ESE	f105
+	135: "SE",  // SE		f106
+	157: "SSE", // SSE	f107
+	180: "S",   // S		f108
+	202: "SSW", // SSW	f109
+	225: "SW",  // SW		f10a
+	247: "WSW", // WSW	f10b
+	270: "W",   // W		f10c
+	292: "WNW", // WNW	f10d
+	315: "NW",  // NW		f10e
+	337: "NNW", // NNW	f10f
+}
+
 const summarySecondsForGraph = 300
 const summarySecondsForGeneration = 60
 const gpFormat = "2006-01-02_15:04:05"
@@ -181,10 +200,13 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 	io.WriteString(w, "e\n")
 }
 
+// TODO make template for changing things
 const gnuPlotScript = `
 set encoding utf8
 set term png size 600, 400 truecolor enhanced font "RobotoCondensed"
 set output "windreport.png"
+set tmargin 2
+set label "Alameda" at graph 0,1.03 left font ",24"
 set xdata time
 set timefmt "%Y-%m-%d_%H:%M:%S"
 set format x "%l%p\n%m/%d"
@@ -195,10 +217,12 @@ set autoscale x2fixmax
 set xtics 3600 rangelimited
 set mxtics 4
 set grid xtics ytics mxtics
-set style fill transparent solid 0.50 noborder
-set arrow size 5, 45 front
-plot [] [0:50<*] "-" using 1:2 title "Wind Avg (mph)" with filledcurves y1=0, \
+set style fill transparent solid 0.30 
+set style line 1 lt rgb "blue" lw 2 pt 0
+set style line 2 lt rgb "sea-green" lw 2 pt 0
+set style line 3 lt rgb "dark-red" lw 2 pt 0
+plot [] [0:40<*] "-" using 1:2 title "Wind Avg (mph)" with filledcurves y1=0, \
  "-" using 1:2 title "Wind Lull" with lines lw 2, \
  "-" using 1:2 title "Wind Gust" with lines lw 2, \
- "-" using 1:(35):2 title "" with labels font "CompassArrows,24"
+ "-" using 1:(26):2 title "" with labels font "CompassArrows,24"
 `
