@@ -173,8 +173,8 @@ set mxtics 4
 set grid xtics ytics mxtics
 set style fill transparent solid 0.50 noborder
 set arrow size 5, 45 front
-plot [] [0:30<*] "-" using 1:2 title "Wind Avg (mph)" with filledcurves y1=0, \
+plot [] [0:50<*] "-" using 1:2 title "Wind Avg (mph)" with filledcurves y1=0, \
  "-" using 1:2 title "Wind Lull" with lines, \
  "-" using 1:2 title "Wind Gust" with lines, \
- "-" using 1:(50):2 title "" with labels font "compass-arrows,24"
+ "-" using 1:(35):2 title "" with labels font "compass-arrows,24"
 `
