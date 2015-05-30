@@ -331,9 +331,8 @@ func (m *Mysql) GetSummaries(reportSize time.Duration, summarySecondsForReport i
 			return nil, fmt.Errorf("Error scanning summaries: %v", err)
 		}
 		// set times to local
-		log.Printf("End time in loc: %v", s.EndTime.Location())
-		s.StartTime.In(time.Local)
-		s.EndTime.In(time.Local)
+		s.StartTime = s.StartTime.In(time.Local)
+		s.EndTime = s.EndTime.In(time.Local)
 		ss[i] = s
 		i++
 	}
