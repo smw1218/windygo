@@ -99,18 +99,19 @@ func (vc *Conn) GetArchiveStream(archiveChan chan *ArchiveRecord, errChan chan e
 		}
 		return fmt.Errorf("Error during DMPAFT count reads: %v\n", err)
 	}
-	log.Printf("%v Pages: %v FRFR: %v crcC: %x crcS: %x\n",
-		dateBytes[:5],
-		toInt(dateBytes[0], dateBytes[1]),
-		toInt(dateBytes[2], dateBytes[3]),
-		crcData(dateBytes[:4]),
-		toInt(dateBytes[4], dateBytes[5]))
+	pages := toInt(dateBytes[0], dateBytes[1])
+	firstRecordOffset := toInt(dateBytes[2], dateBytes[3])
+	crcCalc := int(crcData(dateBytes[:4]))
+	crcSent := toInt(dateBytes[5], dateBytes[4])
+	if crcCalc != crcSent {
+		return fmt.Errorf("CRC check failed on DMPAFT s:%x c:%x", crcSent, crcCalc)
+	}
 
-	go vc.dmpArchive(archiveChan, errChan)
+	go vc.dmpArchive(pages, firstRecordOffset, archiveChan, errChan)
 	return nil
 }
 
-func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) {
+func (vc *Conn) dmpArchive(pages, firstRecordOffset int, archiveChan chan *ArchiveRecord, errChan chan error) {
 	_, err := vc.conn.Write([]byte{ACK})
 	if err != nil {
 		errChan <- fmt.Errorf("Error first DMP ACK: %v\n", err)
@@ -129,7 +130,7 @@ func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) 
 		}
 	*/
 	pkt := make([]byte, PAGE_SIZE)
-	for i := 0; i < PAGE_COUNT; i++ {
+	for i := 0; i < pages; i++ {
 		vc.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
 		c, err := io.ReadFull(vc.buf, pkt)
 		if err != nil {
@@ -142,21 +143,24 @@ func (vc *Conn) dmpArchive(archiveChan chan *ArchiveRecord, errChan chan error) 
 		crcCalc := int(crcData(pkt[0 : PAGE_SIZE-2]))
 		crcSent := toInt(pkt[PAGE_SIZE-1], pkt[PAGE_SIZE-2])
 
-		log.Printf("%v of %v Got pkt: %v crcC: %x s: %x\n", i, c, pkt, crcCalc, crcSent)
+		//log.Printf("%v of %v Got pkt: %v crcC: %x s: %x\n", i, c, pkt, crcCalc, crcSent)
 		var toSend byte = ACK
 		if crcCalc == crcSent {
 			ars, err := parseArchive(pkt)
-			if err != nil {
-				//TODO
+			if err != nil { //TODO
 			}
-			for _, ar := range ars {
-				archiveChan <- ar
+			for j, ar := range ars {
+				if (i > 0 && i < 512) ||
+					(i == 0 && j >= firstRecordOffset) ||
+					(i == 512 && j < firstRecordOffset) {
+					archiveChan <- ar
+				}
 			}
 		} else {
 			log.Printf("CRC failed, sending NACK")
 			toSend = NACK
 		}
-		if i > 5 {
+		if i > 20 {
 			toSend = ESC
 		}
 		_, err = vc.conn.Write([]byte{toSend})
