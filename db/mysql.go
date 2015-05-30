@@ -257,6 +257,8 @@ func (m *Mysql) Record(loopRecord *vantage.LoopRecord) {
 			rollup = newRollup(tint, interval)
 			m.rollups[idx] = rollup
 		}
+		// the current loop record is after the rollup period
+		// save the old rollup as finished and create a new one
 		if !rollup.Period.Equal(tint) {
 			rollup.Done = true
 			finished = append(finished, rollup)
@@ -328,6 +330,9 @@ func (m *Mysql) GetSummaries(reportSize time.Duration, summarySecondsForReport i
 			rows.Close()
 			return nil, fmt.Errorf("Error scanning summaries: %v", err)
 		}
+		// set times to local
+		s.StartTime.In(time.Local)
+		s.EndTime.In(time.Local)
 		ss[i] = s
 		i++
 	}

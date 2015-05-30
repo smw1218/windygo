@@ -78,7 +78,7 @@ func (gp *GnuPlot) createPlot() {
 	cmd.Stdin = rd
 	cmd.Stderr = os.Stderr
 	var toWrite io.Writer = wr
-	f, err := os.OpenFile("gpuplot_input.data", os.O_CREATE|os.O_WRONLY, 0)
+	f, err := os.OpenFile("gnuplot_input.data", os.O_CREATE|os.O_WRONLY, 0664)
 	if err != nil {
 		gp.sendError(fmt.Errorf("Error running gnuplot: %v", err))
 	} else {
@@ -174,7 +174,7 @@ set grid xtics ytics mxtics
 set style fill transparent solid 0.50 noborder
 set arrow size 5, 45 front
 plot [] [0:30<*] "-" using 1:2 title "Wind Avg (mph)" with filledcurves y1=0, \
- "-" using 1:2 title "Wind Lull" with lines \
- "-" using 1:2 title "Wind Gust" with lines \
+ "-" using 1:2 title "Wind Lull" with lines, \
+ "-" using 1:2 title "Wind Gust" with lines, \
  "-" using 1:(50):2 title "" with labels font "compass-arrows,24"
 `
