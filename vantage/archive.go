@@ -91,6 +91,7 @@ func (vc *Conn) GetArchiveStream(archiveChan chan *ArchiveRecord, errChan chan e
 	if err != nil {
 		return fmt.Errorf("DMPAFT timestamp command failed: %v", err)
 	}
+	// After ack, read 6 bytes
 	vc.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
 	c, err := io.ReadFull(vc.buf, dateBytes)
 	if err != nil {
@@ -106,7 +107,7 @@ func (vc *Conn) GetArchiveStream(archiveChan chan *ArchiveRecord, errChan chan e
 	if crcCalc != crcSent {
 		return fmt.Errorf("CRC check failed on DMPAFT s:%x c:%x", crcSent, crcCalc)
 	}
-
+	log.Printf("Pages: %v FRO: %v\n", pages, firstRecordOffset)
 	go vc.dmpArchive(pages, firstRecordOffset, archiveChan, errChan)
 	return nil
 }
@@ -160,9 +161,11 @@ func (vc *Conn) dmpArchive(pages, firstRecordOffset int, archiveChan chan *Archi
 			log.Printf("CRC failed, sending NACK")
 			toSend = NACK
 		}
+		/* debug to shorten the read
 		if i > 20 {
 			toSend = ESC
 		}
+		*/
 		_, err = vc.conn.Write([]byte{toSend})
 		if err != nil {
 			errChan <- fmt.Errorf("Error during DMP ACK: %v\n", err)
