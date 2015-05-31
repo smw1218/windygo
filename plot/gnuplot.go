@@ -168,7 +168,7 @@ func (gp *GnuPlot) sendError(err error) {
 func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 	defer closeme.Close()
 	//write the script first
-	_, err := io.WriteString(w, gnuPlotScript)
+	_, err := io.WriteString(w, fmt.Sprintf(gnuPlotScript, gp.currentMinute.EndTime.Format(titleFormat), timefmt, xfmt))
 	if err != nil {
 		gp.sendError(fmt.Errorf("Process write err: %v", err))
 	}
@@ -224,15 +224,19 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 }
 
 // TODO make template for changing things
+const timefmt = "%Y-%m-%d_%H:%M:%S"
+const xfmt = "%l%p\n%m/%d"
+const titleFormat = "1/2 3:04pm"
 const gnuPlotScript = `
 set encoding utf8
 set term png size 600, 400 truecolor enhanced font "RobotoCondensed"
 set output "windgraph.png"
 set tmargin 2
 set label "Alameda" at graph 0,1.03 left font "RobotoCondensed,24"
+set label "%v" at graph .5,1.03 center font "RobotoCondensed,12"
 set xdata time
-set timefmt "%Y-%m-%d_%H:%M:%S"
-set format x "%l%p\n%m/%d"
+set timefmt "%v"
+set format x "%v"
 set autoscale xfixmin
 set autoscale xfixmax
 set autoscale x2fixmin
