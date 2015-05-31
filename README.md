@@ -4,6 +4,9 @@ There's a bunch of stuff in here that's kinda specific to them.  Wind reports we
 
 Here's the [Vantage Spec](http://www.davisnet.com/support/weather/download/VantageSerialProtocolDocs_v261.pdf) that has the details about the wire protocol.
 
+## Example Output
+![Wind Graph](./example.png?raw=true)
+
 ## Features
 
 - Reads "LOOP" records that the station produces every ~2s and creates summaries every 1, 5 and 10 minutes
