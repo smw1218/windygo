@@ -224,8 +224,8 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 }
 
 // TODO make template for changing things
-const timefmt = "%Y-%m-%d_%H:%M:%S"
-const xfmt = "%l%p\n%m/%d"
+const timefmt = `%Y-%m-%d_%H:%M:%S`
+const xfmt = `%l%p\n%m/%d`
 const titleFormat = "1/2 3:04pm"
 const gnuPlotScript = `
 set encoding utf8
