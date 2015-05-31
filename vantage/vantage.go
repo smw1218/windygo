@@ -15,6 +15,8 @@ const CANCEL = 0x18
 const DMPNACK = 0x15
 const ESC = 0x1b
 
+const LOOP_PACKET_SIZE = 99
+
 type ConnState int
 
 const (
@@ -96,20 +98,37 @@ func (vc *Conn) Loop(times int, loopChan chan *LoopRecord, errChan chan error) e
 }
 
 func (vc *Conn) loopRoutine(times int, loopChan chan *LoopRecord, errChan chan error) {
-	pkt := make([]byte, 99)
+	pkt := make([]byte, LOOP_PACKET_SIZE)
 	for i := 0; i < times; i++ {
 		vc.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 		c, err := io.ReadFull(vc.buf, pkt)
-		if err != nil || (pkt[0] != byte('L') && pkt[1] != byte('O') && pkt[2] != byte('O')) {
+		if err != nil {
 			if c > 0 {
 				log.Printf("Got bytes: %v", pkt[:c])
 			}
 			errChan <- fmt.Errorf("Error during loop read: %v\n", err)
 			return
 		}
-		loopChan <- parseLoop(pkt)
+		if err = validateLoop(pkt); err != nil {
+			log.Printf("Validate error: %#v\n", pkt)
+			errChan <- err
+		} else {
+			loopChan <- parseLoop(pkt)
+		}
 	}
 	errChan <- nil
+}
+
+func validateLoop(pkt []byte) error {
+	if pkt[0] != byte('L') && pkt[1] != byte('O') && pkt[2] != byte('O') {
+		return fmt.Errorf("Loop doesn't begin with 'LOO'")
+	}
+	crcCalc := int(crcData(pkt[0 : LOOP_PACKET_SIZE-2]))
+	crcSent := toInt(pkt[LOOP_PACKET_SIZE-1], pkt[LOOP_PACKET_SIZE-2])
+	if crcCalc != crcSent {
+		return fmt.Errorf("LOOP CRC check failed")
+	}
+	return nil
 }
 
 var BarTrendMap = map[byte]string{
@@ -129,6 +148,7 @@ type LoopRecord struct {
 	WindAvg         int
 	Barometer       float32
 	BarTrend        string
+	BarTrendByte    byte
 	InsideTemp      float32
 	OutsideTemp     float32
 	InsideHumidity  int
@@ -143,6 +163,7 @@ func parseLoop(pkt []byte) *LoopRecord {
 		WindAvg:         int(pkt[15]),
 		Barometer:       float32(toInt(pkt[7], pkt[8])) / 1000,
 		BarTrend:        BarTrendMap[pkt[3]],
+		BarTrendByte:    pkt[3],
 		InsideTemp:      float32(toInt(pkt[9], pkt[10])) / 10,
 		OutsideTemp:     float32(toInt(pkt[12], pkt[13])) / 10,
 		InsideHumidity:  int(pkt[11]),
@@ -195,7 +216,7 @@ func CollectDataForever(host string, handler LoopHandler) {
 		}
 
 		for err == nil {
-			log.Printf("Looping 60 times")
+			//log.Printf("Looping 60 times")
 			err = vc.Loop(60, loopChan, errChan)
 			if err != nil {
 				log.Printf("Error from loop: %v\n", err)

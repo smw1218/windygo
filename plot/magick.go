@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+/*
 const currentCommand = `convert -size 100x400 canvas:white \
 -font Roboto -pointsize 24 -fill 'rgb(30,115,190)' -draw 'text 5,25 "Wind"' \
 -fill 'graya(50%%, 0.5)' -draw 'line 0,30 100,30' \
@@ -28,6 +29,28 @@ const currentCommand = `convert -size 100x400 canvas:white \
 -font CompassArrows -pointsize 20 -fill black -draw 'text 60,60 "%v"' \
 current.png
 `
+*/
+
+const currentCommand = `convert -size 100x400 canvas:white \
+-font Roboto -pointsize 24 -fill 'rgb(30,115,190)' -draw 'text 5,25 "Wind"' \
+-fill 'graya(50%%, 0.5)' -draw 'line 0,30 100,30' \
+-pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,60 "Avg"' \
+-pointsize 20 -fill black -draw 'text 10,85 "%0.1f"' \
+-pointsize 14 -fill black -draw 'text 10,105 "%v %v°"' \
+-pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,130 "Lull/Gust"' \
+-pointsize 20 -fill black -draw 'text 10,155 "%0.1f/%0.1f"' \
+-pointsize 24 -fill 'rgb(30,115,190)' -draw 'text 5,200 "Weather"' \
+-fill 'graya(50%%, 0.5)' -draw 'line 0,205 100,205' \
+-pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,235 "Temp"' \
+-pointsize 20 -fill black -draw 'text 10,260 "%0.1f°"' \
+-pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,295 "Barometer"' \
+-pointsize 20 -fill black -draw 'text 10,320 "%0.3f"' \
+-pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,355 "Humidity"' \
+-pointsize 20 -fill black -draw 'text 10,380 "%v%%"' \
+-font CompassArrows -pointsize 20 -fill black -draw 'text 50,85 "%v"' \
+-font %v -pointsize 20 -fill black -draw 'text 75,320 "%v"' \
+current.png
+`
 
 var splitter = regexp.MustCompile(`[^\s']+|'[^']*'`)
 var oneLineCmd = strings.Replace(currentCommand, "\\\n", "", -1)
@@ -36,12 +59,16 @@ func currentData(c *db.Summary) error {
 	formatted := fmt.Sprintf(oneLineCmd,
 		c.WindAvg,
 		cardinalsText[c.WindDirAvgCardinal()],
+		c.WindDirectionAvg,
 		c.WindLull,
 		c.WindGust,
 		c.OutsideTempAvg,
 		c.BarometerAvg,
 		c.OutsideHumidityAvg,
-		cardinals[c.WindDirAvgCardinal()])
+		cardinals[c.WindDirAvgCardinal()],
+		barTrendFont[c.BarTrendByte],
+		barTrendMap[c.BarTrendByte])
+
 	//log.Printf("command: %v", formatted)
 	matches := splitter.FindAllStringSubmatch(formatted, -1)
 	args := make([]string, len(matches))

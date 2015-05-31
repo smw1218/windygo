@@ -33,8 +33,7 @@ var cardinals map[int]string = map[int]string{
 }
 */
 
-//* for debugging font issues
-// gnuplot or libgd on raspian doesn't seem to support
+// gnuplot or libgd on raspbian doesn't seem to support
 // the extended unicode range
 var cardinals map[int]string = map[int]string{
 	0:   "0", // N 		f100
@@ -79,6 +78,22 @@ const summarySecondsForGeneration = 60
 const gpFormat = "2006-01-02_15:04:05"
 
 // Mon Jan 2 15:04:05 -0700 MST 2006
+var barTrendMap = map[byte]string{
+	196: "00",
+	236: "0",
+	0:   "-",
+	20:  "8",
+	60:  "88",
+	80:  "-",
+}
+var barTrendFont = map[byte]string{
+	196: "CompassArrows",
+	236: "CompassArrows",
+	0:   "Roboto",
+	20:  "CompassArrows",
+	60:  "CompassArrows",
+	80:  "Roboto",
+}
 
 type GnuPlot struct {
 	// TODO mutex
@@ -123,7 +138,7 @@ func (gp *GnuPlot) generator() {
 }
 
 func (gp *GnuPlot) createPlot() {
-	log.Printf("Creating plot")
+	//log.Printf("Creating plot")
 	cmd := exec.Command("gnuplot")
 	rd, wr := io.Pipe()
 	cmd.Stdin = rd

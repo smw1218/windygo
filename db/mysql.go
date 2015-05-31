@@ -55,6 +55,7 @@ type Summary struct {
 	BarometerStart     float64
 	OutsideTempAvg     float64
 	OutsideHumidityAvg float64
+	BarTrendByte       byte
 }
 
 func (s *Summary) WindDirAvgCardinal() int {
@@ -98,6 +99,7 @@ type Rollup struct {
 	BarometerStart     float64
 	OutsideTempSum     float64
 	OutsideHumiditySum int
+	BarTrendByte       byte
 	Done               bool
 }
 
@@ -142,6 +144,7 @@ func (r *Rollup) Update(loopRecord *vantage.LoopRecord) {
 	}
 	r.OutsideTempSum += float64(loopRecord.OutsideTemp)
 	r.OutsideHumiditySum += loopRecord.OutsideHumidity
+	r.BarTrendByte = loopRecord.BarTrendByte
 }
 
 func (r *Rollup) WindAvg() float64 {
@@ -187,6 +190,7 @@ func (r *Rollup) Summary() *Summary {
 		BarometerStart:     r.BarometerStart,
 		OutsideTempAvg:     r.OutsideTempAvg(),
 		OutsideHumidityAvg: float64(r.OutsideHumidityAvg()),
+		BarTrendByte:       r.BarTrendByte,
 	}
 	return s
 }
