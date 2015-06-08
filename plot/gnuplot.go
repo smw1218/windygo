@@ -210,6 +210,11 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 	}
 	io.WriteString(w, "e\n")
 
+	// write fake datapoint to increase the max range
+	tm := gp.currentMinute.EndTime.Add(15 * time.Minute).Truncate(15 * time.Minute)
+	io.WriteString(w, fmt.Sprintf("%s\t0\n", tm))
+	io.WriteString(w, "e\n")
+
 	// write the direction data
 	for i := 0; i < lensaved; i++ {
 		summary := gp.saved[(i+gp.nextSave)%lensaved]
@@ -243,7 +248,10 @@ set autoscale x2fixmin
 set autoscale x2fixmax
 set xtics 3600 rangelimited
 set mxtics 4
-set grid xtics ytics mxtics
+unset ytics
+set grid xtics y2tics mxtics
+set y2tics scale default
+set y2range [0:40<*]
 set style fill transparent solid 0.30 
 set style line 1 lt rgb "blue" lw 2 pt 0
 set style line 2 lt rgb "sea-green" lw 2 pt 0
@@ -251,5 +259,6 @@ set style line 3 lt rgb "dark-red" lw 2 pt 0
 plot [] [0:40<*] "-" using 1:2 title "Wind Avg (mph)" with filledcurves y1=0 ls 1, \
  "-" using 1:2 title "Wind Lull" with lines ls 2, \
  "-" using 1:2 title "Wind Gust" with lines ls 3, \
+ "-" using 1:2 title "" with lines lw 1, \
  "-" using 1:(26):2 title "" with labels font "CompassArrows,24"
 `
