@@ -212,7 +212,7 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 
 	// write fake datapoint to increase the max range
 	tm := gp.currentMinute.EndTime.Add(15 * time.Minute).Truncate(15 * time.Minute)
-	io.WriteString(w, fmt.Sprintf("%s\t0\n", tm))
+	io.WriteString(w, fmt.Sprintf("%s\t0\n", tm.Format(gpFormat)))
 	io.WriteString(w, "e\n")
 
 	// write the direction data
