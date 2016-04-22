@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 )
 
 /*
@@ -87,9 +88,22 @@ func currentData(c *db.Summary) error {
 func finishReport() error {
 	cmd := exec.Command("./finish.sh")
 	cmd.Stderr = os.Stderr
+	doneChan := make(chan struct{}, 1)
+	go finishKiller(cmd, doneChan)
 	err := cmd.Run()
+	doneChan <- struct{}{}
 	if err != nil {
 		return fmt.Errorf("Error running finish: %v", err)
 	}
 	return nil
+}
+
+// Kills the finish script after 60 seconds
+func finishKiller(cmd *exec.Cmd, doneChan chan struct{}) {
+	waitChan := time.After(60*time.Second)
+	select {
+	case <- waitChan:
+		cmd.Process.Kill()
+	case <- doneChan:
+	}
 }
