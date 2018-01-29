@@ -17,19 +17,13 @@ Here's the [Vantage Spec](http://www.davisnet.com/support/weather/download/Vanta
 ## Installation
 Dependencies: 
 
-     sudo apt-get install gnuplot imagemagick mysql-server
+     sudo apt-get install gnuplot imagemagick mariadb-server fonts-roboto golang ftp
 
 ### Building
-This program is written in go, but the version that runs on raspbian is too old.  Download version 1.4 or newer from
-http://dave.cheney.net/unofficial-arm-tarballs.  You need to match the version to the raspberry pi you have.  
-
 It's ok to just install go in the home directory.  Set you GOROOT and PATH to point to your new install:
   
-     tar xzf  go1.4.2.linux-arm...
-     export GOROOT=$(pwd)/go
-     export PATH=$GOROOT/bin:$PATH
-     mkdir -p gopath gopath/src gopath/bin gopath/pkg
-     export GOPATH=$(pwd)/gopath
+     mkdir -p go go/src go/bin go/pkg
+     export GOPATH=$(pwd)/go
      go get github.com/smw1218/windygo
      go install github.com/smw1218/windygo
 
@@ -37,9 +31,9 @@ If everything went well, the binary should be in gopath/bin.
 
 ### Fonts
 
-I use Roboto and RobotoCondensed (Google Fonts) for the gnuplots and ImageMagick.  These need to installed for them to work.  Luckily, they're install on Rasbian already.  ImageMagick requires an extra xml file arrows/fonts.xml which needs to be copied into /etc/ImageMagick:
+I use Roboto and RobotoCondensed (Google Fonts) for the gnuplots and ImageMagick.  These need to installed for them to work. ImageMagick requires an extra xml file arrows/fonts.xml which needs to be copied into /etc/ImageMagick-6:
 
-     sudo cp arrows/fonts.xml /etc/ImageMagick
+     sudo cp arrows/fonts.xml /etc/ImageMagick-6
   
 Edit /etc/ImageMagick/type.xml and add this line between `<typemap>` and `</typemap>`:
 
@@ -49,13 +43,10 @@ I also created a custom font using [fontcustom](http://fontcustom.com/). Ir prov
 
      sudo cp arrows/CompassArrows/CompassArrows.ttf /usr/share/fonts/truetype/freefont/
 
-### Mysql
+### Mysql/MariaDB
 You have to create the database for windygo by hand, but it will do the rest. Launch mysql as root and create it:
 
-    mysql -u root
-    create database windygo;
-    create user windygo;
-    GRANT ALL ON windygo.* TO 'windygo'@'localhost';
+    mysql -u root < $GOPATH/src/github.com/smw1218/windygo/mysql_setup.sql
 
 I didn't implement using a password, if someone files an issue I'll do it.
 
@@ -71,7 +62,7 @@ Also, I thought it would be a fun go project.
 ## Bugs
 I implemented the DMP and DMPAFT commands but both seem to have issues. The DMP returns several pages ok but then a page is missing a byte and the whole output gets offset.  I figured it out but I didn't see any way to recover.
 
-The DMPAFT command works just fine by on my unit the data is garbage.  There are repeated dates, dates in the future (more than 1 day) and the data is completely out of order.
+The DMPAFT command works just fine on my unit but the data is garbage.  There are repeated dates, dates in the future (more than 1 day) and the data is completely out of order.
 
 There are some hardcoded references to "Alameda"
 
