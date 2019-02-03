@@ -3,12 +3,14 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/smw1218/windygo/vantage"
 	"log"
 	"math"
 	"strings"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jinzhu/gorm"
+	"github.com/smw1218/windygo/vantage"
 )
 
 var Intervals = []time.Duration{time.Minute, 5 * time.Minute, 10 * time.Minute}
@@ -38,8 +40,13 @@ CREATE TABLE IF NOT EXISTS summaries (
 )
 `
 
+type LoopRecord struct {
+	ID uint `gorm:"primary_key"`
+	vantage.LoopRecord
+}
+
 type Summary struct {
-	Id                 int64
+	ID                 int64
 	StartTime          time.Time
 	EndTime            time.Time
 	Measurements       int64
@@ -81,6 +88,7 @@ type Mysql struct {
 	ErrChan    chan error
 	rollups    []*Rollup
 	insertStmt *sql.Stmt
+	ORM        *gorm.DB
 }
 
 type Rollup struct {
@@ -174,7 +182,7 @@ func (r *Rollup) OutsideHumidityAvg() int {
 
 func (r *Rollup) Summary() *Summary {
 	s := &Summary{
-		Id:                 0,
+		ID:                 0,
 		StartTime:          r.Period,
 		EndTime:            r.Period.Add(r.Interval),
 		Measurements:       int64(r.Count),
@@ -218,18 +226,24 @@ func (s *Summary) insert() []interface{} {
 }
 
 func NewMysql(user, password string) (*Mysql, error) {
-	db, err := sql.Open("mysql", fmt.Sprintf("%v:%v@/windygo?parseTime=true", user, password))
+	connectString := fmt.Sprintf("%v:%v@/windygo?parseTime=true", user, password)
+	gormDB, err := gorm.Open("mysql", connectString)
+	//db, err := sql.Open("mysql", connectString)
 	if err != nil {
 		return nil, fmt.Errorf("Error connecting to mysql: %v", err)
 	}
-	mysql := &Mysql{DB: db}
+
+	mysql := &Mysql{
+		DB:  gormDB.DB(),
+		ORM: gormDB,
+	}
 	mysql.rollups = make([]*Rollup, len(Intervals))
 	mysql.SavedChan = make(chan *Summary, 10)
 	mysql.ErrChan = make(chan error, 1)
 	if err = mysql.init(); err != nil {
 		return nil, err
 	}
-	mysql.insertStmt, err = db.Prepare(mysql.createInsertStmt())
+	mysql.insertStmt, err = mysql.DB.Prepare(mysql.createInsertStmt())
 	if err != nil {
 		return nil, fmt.Errorf("Failed insert prepare: %v", err)
 	}
@@ -249,10 +263,17 @@ func (m *Mysql) init() error {
 	if err != nil {
 		return fmt.Errorf("Create summaries table error: %v", err)
 	}
+	m.ORM.AutoMigrate(&LoopRecord{})
 	return nil
 }
 
 func (m *Mysql) Record(loopRecord *vantage.LoopRecord) {
+	err := m.ORM.Save(&LoopRecord{
+		LoopRecord: *loopRecord,
+	})
+	if err != nil {
+		log.Printf("Failed saving loop record: %v", err)
+	}
 	finished := make([]*Rollup, 0, len(Intervals))
 	for idx, interval := range Intervals {
 		tint := loopRecord.Recorded.Truncate(interval)
@@ -296,7 +317,7 @@ func (m *Mysql) save(rollup *Rollup) {
 }
 
 // 5 minutes
-const selectRecent string = "select * from summaries where end_time > ? and summary_seconds = ? order by end_time desc"
+const selectRecent string = "select * from summaries where end_time > ? and summary_seconds = ? and wind_avg < 100 order by end_time desc"
 
 func (m *Mysql) GetSummaries(reportSize time.Duration, summarySecondsForReport int) ([]*Summary, error) {
 	rows, err := m.DB.Query(selectRecent, time.Now().Add(-reportSize), summarySecondsForReport)
@@ -314,7 +335,7 @@ func (m *Mysql) GetSummaries(reportSize time.Duration, summarySecondsForReport i
 		}
 		s := &Summary{}
 		err := rows.Scan(
-			&s.Id,
+			&s.ID,
 			&s.StartTime,
 			&s.EndTime,
 			&s.Measurements,

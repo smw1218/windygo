@@ -142,7 +142,7 @@ var BarTrendMap = map[byte]string{
 
 type LoopRecord struct {
 	// TODO everything else
-	Recorded        time.Time
+	Recorded        time.Time `sql:"index"`
 	Wind            int
 	WindDirection   int
 	WindAvg         int
@@ -215,6 +215,7 @@ func CollectDataForever(host string, handler LoopHandler) {
 			vc, err = Dial(host)
 		}
 
+		log.Printf("Connected to %v", host)
 		for err == nil {
 			//log.Printf("Looping 60 times")
 			err = vc.Loop(60, loopChan, errChan)
