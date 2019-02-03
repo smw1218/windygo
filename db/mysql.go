@@ -268,11 +268,11 @@ func (m *Mysql) init() error {
 }
 
 func (m *Mysql) Record(loopRecord *vantage.LoopRecord) {
-	err := m.ORM.Save(&LoopRecord{
+	resultDB := m.ORM.Save(&LoopRecord{
 		LoopRecord: *loopRecord,
 	})
-	if err != nil {
-		log.Printf("Failed saving loop record: %v", err)
+	if resultDB.Error != nil {
+		log.Printf("Failed saving loop record: %v", resultDB.Error)
 	}
 	finished := make([]*Rollup, 0, len(Intervals))
 	for idx, interval := range Intervals {
