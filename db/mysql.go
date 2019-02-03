@@ -361,8 +361,9 @@ func (m *Mysql) GetSummaries(reportSize time.Duration, summarySecondsForReport i
 		ss[i] = s
 		i++
 	}
-	if i < slenmin {
-		log.Printf("Not enough summary records for report: %v", i)
+	// warn if we have less than half the records
+	if i < (slenmin / 2) {
+		log.Printf("Not enough summary records for report: %v/%v", i, slenmin)
 	}
 	// reverse the array so it's in chronological order and any missing vals are at the beginning
 	for j := 0; j < slenmin/2; j++ {
