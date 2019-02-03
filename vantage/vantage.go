@@ -143,16 +143,22 @@ var BarTrendMap = map[byte]string{
 type LoopRecord struct {
 	// TODO everything else
 	Recorded        time.Time `sql:"index"`
-	Wind            int
-	WindDirection   int
-	WindAvg         int
-	Barometer       float32
+	Wind            int       // mph
+	WindDirection   int       // degrees
+	WindAvg         int       // mph
+	BarometerRaw    int       // in Hg/1000
 	BarTrend        string
 	BarTrendByte    byte
-	InsideTemp      float32
-	OutsideTemp     float32
-	InsideHumidity  int
-	OutsideHumidity int
+	InsideTempRaw   int // 1/10 F
+	OutsideTempRaw  int // 1/10 F
+	InsideHumidity  int // %
+	OutsideHumidity int // %
+	RainRateRaw     int // clicks/hr click == 0.01in
+	UV              int
+	SolarRadiation  int // watt/m^2
+	StormRainRaw    int // in
+	StartOfStorm    time.Time
+	DayRainRaw      int
 }
 
 func parseLoop(pkt []byte) *LoopRecord {
@@ -161,18 +167,68 @@ func parseLoop(pkt []byte) *LoopRecord {
 		Wind:            int(pkt[14]),
 		WindDirection:   toInt(pkt[16], pkt[17]),
 		WindAvg:         int(pkt[15]),
-		Barometer:       float32(toInt(pkt[7], pkt[8])) / 1000,
+		BarometerRaw:    toInt(pkt[7], pkt[8]),
 		BarTrend:        BarTrendMap[pkt[3]],
 		BarTrendByte:    pkt[3],
-		InsideTemp:      float32(toInt(pkt[9], pkt[10])) / 10,
-		OutsideTemp:     float32(toInt(pkt[12], pkt[13])) / 10,
+		InsideTempRaw:   toInt(pkt[9], pkt[10]),
+		OutsideTempRaw:  toInt(pkt[12], pkt[13]),
 		InsideHumidity:  int(pkt[11]),
 		OutsideHumidity: int(pkt[33]),
+		RainRateRaw:     toInt(pkt[41], pkt[42]),
+		UV:              int(pkt[43]),
+		SolarRadiation:  toInt(pkt[44], pkt[45]),
+		StormRainRaw:    toInt(pkt[46], pkt[47]),
+		StartOfStorm:    startOfStorm(pkt[48], pkt[49]),
+		DayRainRaw:      toInt(pkt[50], pkt[51]),
 	}
 	return lr
 }
 func toInt(lsb, msb byte) int {
 	return int(lsb) | int(msb)<<8
+}
+
+func startOfStorm(lsb, msb byte) time.Time {
+	rawValue := uint(lsb) | uint(msb)<<8
+	// Bit 15 to bit 12 is the month,
+	month := time.Month(rawValue >> 12)
+	// Bit 11 to bit 7 is the day
+	day := int(rawValue >> 7 & 0x1F)
+	// Bit 6 to bit 0 is the year offseted by 2000.
+	year := int(rawValue&0x3F) + 2000
+
+	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+}
+
+func (lr *LoopRecord) Barometer() float32 {
+	return float32(lr.BarometerRaw) / 1000
+}
+
+func (lr *LoopRecord) TempConversion(raw int) float32 {
+	return float32(raw) / 10
+}
+
+func (lr *LoopRecord) RainConversion(raw int) float32 {
+	return float32(raw) / 100
+}
+
+func (lr *LoopRecord) InsideTemp() float32 {
+	return lr.TempConversion(lr.InsideTempRaw)
+}
+
+func (lr *LoopRecord) OutsideTemp() float32 {
+	return lr.TempConversion(lr.OutsideTempRaw)
+}
+
+func (lr *LoopRecord) RainRate() float32 {
+	return lr.RainConversion(lr.RainRateRaw)
+}
+
+func (lr *LoopRecord) StormRain() float32 {
+	return lr.RainConversion(lr.StormRainRaw)
+}
+
+func (lr *LoopRecord) DayRain() float32 {
+	return lr.RainConversion(lr.DayRainRaw)
 }
 
 func (vc *Conn) sendAckCommand(cmd string) error {

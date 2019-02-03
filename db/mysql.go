@@ -146,11 +146,11 @@ func (r *Rollup) Update(loopRecord *vantage.LoopRecord) {
 		r.WindDirMin = winddir
 	}
 	// other stuff
-	r.BarometerSum += float64(loopRecord.Barometer)
+	r.BarometerSum += float64(loopRecord.Barometer())
 	if r.Count == 1 {
-		r.BarometerStart = float64(loopRecord.Barometer)
+		r.BarometerStart = float64(loopRecord.Barometer())
 	}
-	r.OutsideTempSum += float64(loopRecord.OutsideTemp)
+	r.OutsideTempSum += float64(loopRecord.OutsideTemp())
 	r.OutsideHumiditySum += loopRecord.OutsideHumidity
 	r.BarTrendByte = loopRecord.BarTrendByte
 }
