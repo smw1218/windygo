@@ -3,12 +3,13 @@ package plot
 import (
 	//"bufio"
 	"fmt"
-	"github.com/smw1218/windygo/db"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"time"
+
+	"github.com/smw1218/windygo/db"
 )
 
 // mapping of direction to custom font
@@ -120,8 +121,11 @@ func NewGnuPlot(mysql *db.Mysql) (*GnuPlot, error) {
 func (gp *GnuPlot) generator() {
 	for summary := range gp.summaryChan {
 		if summary.SummarySeconds == summarySecondsForGraph {
-			gp.saved[gp.nextSave%len(gp.saved)] = summary
-			gp.nextSave++
+			// throw away bad records
+			if summary.WindAvg < 100 {
+				gp.saved[gp.nextSave%len(gp.saved)] = summary
+				gp.nextSave++
+			}
 		} else if summary.SummarySeconds == summarySecondsForGeneration {
 			gp.currentMinute = summary
 			gp.createPlot()
