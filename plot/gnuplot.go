@@ -167,6 +167,27 @@ func (gp *GnuPlot) sendError(err error) {
 	}
 }
 
+type valueGrabber func(summary *db.Summary) interface{}
+
+func (gp *GnuPlot) writeTimeSeries(w io.Writer, get valueGrabber) {
+	lensaved := len(gp.saved)
+	// write the avg data
+	for i := 0; i < lensaved; i++ {
+		summary := gp.saved[(i+gp.nextSave)%lensaved]
+		if summary != nil {
+			var yValue interface{} = get(summary)
+			if !summary.Valid() {
+				yValue = "NaN"
+			}
+			_, err := io.WriteString(w, fmt.Sprintf("%v\t%v\n", summary.EndTime.Format(gpFormat), yValue))
+			if err != nil {
+				gp.sendError(fmt.Errorf("Process write err: %v", err))
+			}
+		}
+	}
+	io.WriteString(w, "e\n")
+}
+
 func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 	defer closeme.Close()
 	//write the script first
@@ -175,48 +196,24 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 		gp.sendError(fmt.Errorf("Process write err: %v", err))
 	}
 
-	lensaved := len(gp.saved)
-	// write the avg data
-	for i := 0; i < lensaved; i++ {
-		summary := gp.saved[(i+gp.nextSave)%lensaved]
-		if summary != nil && summary.Valid() {
-			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindAvg))
-			if err != nil {
-				gp.sendError(fmt.Errorf("Process write err: %v", err))
-			}
-		}
-	}
-	io.WriteString(w, "e\n")
+	gp.writeTimeSeries(w, func(summary *db.Summary) interface{} {
+		return summary.WindAvg
+	})
 
-	// write the lull data
-	for i := 0; i < lensaved; i++ {
-		summary := gp.saved[(i+gp.nextSave)%lensaved]
-		if summary != nil && summary.Valid() {
-			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindLull))
-			if err != nil {
-				gp.sendError(fmt.Errorf("Process write err: %v", err))
-			}
-		}
-	}
-	io.WriteString(w, "e\n")
+	gp.writeTimeSeries(w, func(summary *db.Summary) interface{} {
+		return summary.WindLull
+	})
 
-	// write the gust data
-	for i := 0; i < lensaved; i++ {
-		summary := gp.saved[(i+gp.nextSave)%lensaved]
-		if summary != nil && summary.Valid() {
-			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindGust))
-			if err != nil {
-				gp.sendError(fmt.Errorf("Process write err: %v", err))
-			}
-		}
-	}
-	io.WriteString(w, "e\n")
+	gp.writeTimeSeries(w, func(summary *db.Summary) interface{} {
+		return summary.WindGust
+	})
 
 	// write fake datapoint to increase the max range
 	tm := gp.currentMinute.EndTime.Add(15 * time.Minute).Truncate(15 * time.Minute)
 	io.WriteString(w, fmt.Sprintf("%s\t0\n", tm.Format(gpFormat)))
 	io.WriteString(w, "e\n")
 
+	lensaved := len(gp.saved)
 	// write the direction data
 	for i := 0; i < lensaved; i++ {
 		summary := gp.saved[(i+gp.nextSave)%lensaved]
