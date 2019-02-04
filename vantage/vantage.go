@@ -154,11 +154,13 @@ type LoopRecord struct {
 	InsideHumidity  int // %
 	OutsideHumidity int // %
 	RainRateRaw     int // clicks/hr click == 0.01in
-	UV              int
-	SolarRadiation  int // watt/m^2
-	StormRainRaw    int // in
-	StartOfStorm    time.Time
-	DayRainRaw      int
+	//UV              int
+	//SolarRadiation  int // watt/m^2
+	StormRainRaw int // in
+	StartOfStorm time.Time
+	DayRainRaw   int
+	MonthRainRaw int
+	YearRainRaw  int
 }
 
 func parseLoop(pkt []byte) *LoopRecord {
@@ -175,11 +177,13 @@ func parseLoop(pkt []byte) *LoopRecord {
 		InsideHumidity:  int(pkt[11]),
 		OutsideHumidity: int(pkt[33]),
 		RainRateRaw:     toInt(pkt[41], pkt[42]),
-		UV:              int(pkt[43]),
-		SolarRadiation:  toInt(pkt[44], pkt[45]),
-		StormRainRaw:    toInt(pkt[46], pkt[47]),
-		StartOfStorm:    startOfStorm(pkt[48], pkt[49]),
-		DayRainRaw:      toInt(pkt[50], pkt[51]),
+		//UV:              int(pkt[43]),
+		//SolarRadiation:  toInt(pkt[44], pkt[45]),
+		StormRainRaw: toInt(pkt[46], pkt[47]),
+		StartOfStorm: startOfStorm(pkt[48], pkt[49]),
+		DayRainRaw:   toInt(pkt[50], pkt[51]),
+		MonthRainRaw: toInt(pkt[52], pkt[53]),
+		YearRainRaw:  toInt(pkt[54], pkt[55]),
 	}
 	return lr
 }
