@@ -73,6 +73,10 @@ func (s *Summary) WindDirAvgCardinal() int {
 	return tmp
 }
 
+func (s *Summary) Valid() bool {
+	return s.WindAvg < 100 && s.WindGust < 100
+}
+
 const insertSql string = `insert into summaries (%v) VALUES (%v)`
 
 var insertCols []string = []string{
@@ -317,7 +321,7 @@ func (m *Mysql) save(rollup *Rollup) {
 }
 
 // 5 minutes
-const selectRecent string = "select * from summaries where end_time > ? and summary_seconds = ? and wind_avg < 100 order by end_time desc"
+const selectRecent string = "select * from summaries where end_time > ? and summary_seconds = ? order by end_time desc"
 
 func (m *Mysql) GetSummaries(reportSize time.Duration, summarySecondsForReport int) ([]*Summary, error) {
 	rows, err := m.DB.Query(selectRecent, time.Now().Add(-reportSize), summarySecondsForReport)

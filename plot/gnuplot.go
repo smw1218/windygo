@@ -112,6 +112,7 @@ func NewGnuPlot(mysql *db.Mysql) (*GnuPlot, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	gp.summaryChan = mysql.SavedChan
 	gp.ErrChan = make(chan error, 5)
 	go gp.generator()
@@ -121,11 +122,8 @@ func NewGnuPlot(mysql *db.Mysql) (*GnuPlot, error) {
 func (gp *GnuPlot) generator() {
 	for summary := range gp.summaryChan {
 		if summary.SummarySeconds == summarySecondsForGraph {
-			// throw away bad records
-			if summary.WindAvg < 100 {
-				gp.saved[gp.nextSave%len(gp.saved)] = summary
-				gp.nextSave++
-			}
+			gp.saved[gp.nextSave%len(gp.saved)] = summary
+			gp.nextSave++
 		} else if summary.SummarySeconds == summarySecondsForGeneration {
 			gp.currentMinute = summary
 			gp.createPlot()
@@ -181,7 +179,7 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 	// write the avg data
 	for i := 0; i < lensaved; i++ {
 		summary := gp.saved[(i+gp.nextSave)%lensaved]
-		if summary != nil {
+		if summary != nil && summary.Valid() {
 			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindAvg))
 			if err != nil {
 				gp.sendError(fmt.Errorf("Process write err: %v", err))
@@ -193,7 +191,7 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 	// write the lull data
 	for i := 0; i < lensaved; i++ {
 		summary := gp.saved[(i+gp.nextSave)%lensaved]
-		if summary != nil {
+		if summary != nil && summary.Valid() {
 			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindLull))
 			if err != nil {
 				gp.sendError(fmt.Errorf("Process write err: %v", err))
@@ -205,7 +203,7 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 	// write the gust data
 	for i := 0; i < lensaved; i++ {
 		summary := gp.saved[(i+gp.nextSave)%lensaved]
-		if summary != nil {
+		if summary != nil && summary.Valid() {
 			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), summary.WindGust))
 			if err != nil {
 				gp.sendError(fmt.Errorf("Process write err: %v", err))
@@ -222,7 +220,7 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 	// write the direction data
 	for i := 0; i < lensaved; i++ {
 		summary := gp.saved[(i+gp.nextSave)%lensaved]
-		if summary != nil && summary.EndTime.Equal(summary.EndTime.Truncate(15*time.Minute)) {
+		if summary != nil && summary.Valid() && summary.EndTime.Equal(summary.EndTime.Truncate(15*time.Minute)) {
 			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), cardinals[summary.WindDirAvgCardinal()]))
 			if err != nil {
 				gp.sendError(fmt.Errorf("Process write err: %v", err))
