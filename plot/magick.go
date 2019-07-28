@@ -2,12 +2,13 @@ package plot
 
 import (
 	"fmt"
-	"github.com/smw1218/windygo/db"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/smw1218/windygo/db"
 )
 
 /*
@@ -42,8 +43,9 @@ const currentCommand = `convert -size 100x400 canvas:white \
 -pointsize 20 -fill black -draw 'text 10,155 "%0.1f/%0.1f"' \
 -pointsize 24 -fill 'rgb(30,115,190)' -draw 'text 5,200 "Weather"' \
 -fill 'graya(50%%, 0.5)' -draw 'line 0,205 100,205' \
--pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,235 "Temp"' \
--pointsize 20 -fill black -draw 'text 10,260 "%0.1f°"' \
+-pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,230 "Temp"' \
+-pointsize 20 -fill black -draw 'text 10,255 "%0.1f°"' \
+-pointsize 14 -fill black -draw 'text 10,275 "%0.1fC"' \
 -pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,295 "Barometer"' \
 -pointsize 20 -fill black -draw 'text 10,320 "%0.3f"' \
 -pointsize 16 -fill 'rgb(30,115,190)' -draw 'text 10,355 "Humidity"' \
@@ -64,6 +66,7 @@ func currentData(c *db.Summary) error {
 		c.WindLull,
 		c.WindGust,
 		c.OutsideTempAvg,
+		c.OutsideTempAvgCelsius(),
 		c.BarometerAvg,
 		c.OutsideHumidityAvg,
 		cardinals[c.WindDirAvgCardinal()],
@@ -100,10 +103,10 @@ func finishReport() error {
 
 // Kills the finish script after 60 seconds
 func finishKiller(cmd *exec.Cmd, doneChan chan struct{}) {
-	waitChan := time.After(60*time.Second)
+	waitChan := time.After(60 * time.Second)
 	select {
-	case <- waitChan:
+	case <-waitChan:
 		cmd.Process.Kill()
-	case <- doneChan:
+	case <-doneChan:
 	}
 }

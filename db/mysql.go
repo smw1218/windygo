@@ -73,6 +73,10 @@ func (s *Summary) WindDirAvgCardinal() int {
 	return tmp
 }
 
+func (s *Summary) OutsideTempAvgCelsius() float64 {
+	return (s.OutsideTempAvg - 32) * 5 / 9
+}
+
 func (s *Summary) Valid() bool {
 	return s.WindAvg < 100 && s.WindGust < 100
 }
