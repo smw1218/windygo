@@ -17,7 +17,7 @@ Here's the [Vantage Spec](http://www.davisnet.com/support/weather/download/Vanta
 ## Installation
 Dependencies: 
 
-     sudo apt-get install gnuplot imagemagick mariadb-server fonts-roboto golang ftp
+     sudo apt-get install gnuplot imagemagick mariadb-server fonts-roboto golang ftp git
 
 ### Building
 It's ok to just install go in the home directory.  Set you GOROOT and PATH to point to your new install:
@@ -35,11 +35,11 @@ I use Roboto and RobotoCondensed (Google Fonts) for the gnuplots and ImageMagick
 
      sudo cp arrows/fonts.xml /etc/ImageMagick-6
   
-Edit /etc/ImageMagick/type.xml and add this line between `<typemap>` and `</typemap>`:
+Edit /etc/ImageMagick-6/type.xml and add this line between `<typemap>` and `</typemap>`:
 
      <include file="fonts.xml" />
 
-I also created a custom font using [fontcustom](http://fontcustom.com/). Ir provides all the compass directions.  The font is in arrows/CompassArrows/CompassArrows.ttf and must be copied to a system font directory (for some reason on raspberry pi, gnuplot did not work with just setting GDFONTPATH):
+I also created a custom font using [fontcustom](http://fontcustom.com/). It provides all the compass directions.  The font is in arrows/CompassArrows/CompassArrows.ttf and must be copied to a system font directory (for some reason on raspberry pi, gnuplot did not work with just setting GDFONTPATH):
 
      sudo cp arrows/CompassArrows/CompassArrows.ttf /usr/share/fonts/truetype/freefont/
 

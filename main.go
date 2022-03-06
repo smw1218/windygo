@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+
 	"github.com/smw1218/windygo/db"
 	"github.com/smw1218/windygo/plot"
 	"github.com/smw1218/windygo/vantage"
-	"log"
 )
 
 type DataRecorder struct{}
@@ -45,12 +46,12 @@ func main() {
 	}
 	db, err := db.NewMysql("windygo", "")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
 	gp, err := plot.NewGnuPlot(db)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
 	go vantage.CollectDataForever(host, db.Record)
