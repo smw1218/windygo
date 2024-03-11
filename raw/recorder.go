@@ -80,7 +80,7 @@ func (r *Recorder) ensureCurrentFile(fileName string) error {
 }
 
 func (r *Recorder) open(fileName string) (*os.File, error) {
-	dir := path.Base(fileName)
+	dir := path.Dir(fileName)
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		return nil, fmt.Errorf("error creating directory: %w", err)
