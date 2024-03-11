@@ -83,7 +83,7 @@ func currentData(c *db.Summary) error {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("error running current: %w", err)
+		return fmt.Errorf("error running current %v: %w", formatted, err)
 	}
 	return nil
 }

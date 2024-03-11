@@ -16,7 +16,10 @@ const CANCEL = 0x18
 const DMPNACK = 0x15
 const ESC = 0x1b
 
-const LOOP_PACKET_SIZE = 99
+const (
+	LOOP_PACKET_SIZE = 99
+	LOOP_RECORD_SIZE = LOOP_PACKET_SIZE + 8
+)
 
 type ConnState int
 
@@ -166,8 +169,9 @@ type LoopRecord struct {
 	YearRainRaw  int
 }
 
-func ParseLoop(pkt []byte) *LoopRecord {
-	recorded := time.Unix(0, int64(binary.LittleEndian.Uint64(pkt)))
+func ParseLoop(pktFull []byte) *LoopRecord {
+	recorded := time.Unix(0, int64(binary.LittleEndian.Uint64(pktFull)))
+	pkt := pktFull[8:]
 	lr := &LoopRecord{
 		Recorded:        recorded,
 		Wind:            int(pkt[14]),
