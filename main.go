@@ -14,12 +14,6 @@ import (
 	"github.com/smw1218/windygo/vantage"
 )
 
-type DataRecorder struct{}
-
-func (dr *DataRecorder) record(loopRecord *vantage.LoopRecord) {
-	log.Printf("R: %#v\n", loopRecord)
-}
-
 func main() {
 	var host string
 	var rawDir string

@@ -29,6 +29,9 @@ func (r *Recorder) Shutdown() {
 	// don't release the lock here, we don't want to
 	// try writing after close
 	r.writeMutex.Lock()
+	if r.currentFile == nil {
+		return
+	}
 	err := r.currentFile.Close()
 	if err != nil {
 		log.Printf("Error closing file %v: %v", r.currentFile.Name(), err)
