@@ -2,6 +2,7 @@ package vantage
 
 import (
 	"bufio"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
@@ -87,33 +88,35 @@ func (vc *Conn) wakeup() error {
 	return nil
 }
 
-func (vc *Conn) Loop(times int, loopChan chan *LoopRecord, errChan chan error) error {
+func (vc *Conn) Loop(times int, loopChan chan []byte, errChan chan error) error {
 	err := vc.sendAckCommand(fmt.Sprintf("LOOP %v\n", times))
 	if err != nil {
-		return fmt.Errorf("Error sending loop command: %v", err)
+		return fmt.Errorf("error sending loop command: %w", err)
 	}
 	vc.state = looping
 	go vc.loopRoutine(times, loopChan, errChan)
 	return nil
 }
 
-func (vc *Conn) loopRoutine(times int, loopChan chan *LoopRecord, errChan chan error) {
-	pkt := make([]byte, LOOP_PACKET_SIZE)
+func (vc *Conn) loopRoutine(times int, loopChan chan []byte, errChan chan error) {
+	pkt := make([]byte, LOOP_PACKET_SIZE+8)
 	for i := 0; i < times; i++ {
 		vc.conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-		c, err := io.ReadFull(vc.buf, pkt)
+		c, err := io.ReadFull(vc.buf, pkt[8:])
 		if err != nil {
 			if c > 0 {
 				log.Printf("Got bytes: %v", pkt[:c])
 			}
-			errChan <- fmt.Errorf("Error during loop read: %v\n", err)
+			errChan <- fmt.Errorf("error during loop read: %w", err)
 			return
 		}
-		if err = validateLoop(pkt); err != nil {
+		now := time.Now().UnixNano()
+		binary.LittleEndian.PutUint64(pkt, uint64(now))
+		if err = validateLoop(pkt[8:]); err != nil {
 			log.Printf("Validate error: %#v\n", pkt)
 			errChan <- err
 		} else {
-			loopChan <- parseLoop(pkt)
+			loopChan <- pkt
 		}
 	}
 	errChan <- nil
@@ -163,9 +166,10 @@ type LoopRecord struct {
 	YearRainRaw  int
 }
 
-func parseLoop(pkt []byte) *LoopRecord {
+func ParseLoop(pkt []byte) *LoopRecord {
+	recorded := time.Unix(0, int64(binary.LittleEndian.Uint64(pkt)))
 	lr := &LoopRecord{
-		Recorded:        time.Now(),
+		Recorded:        recorded,
 		Wind:            int(pkt[14]),
 		WindDirection:   toInt(pkt[16], pkt[17]),
 		WindAvg:         int(pkt[15]),
@@ -238,16 +242,16 @@ func (lr *LoopRecord) DayRain() float32 {
 func (vc *Conn) sendAckCommand(cmd string) error {
 	_, err := vc.conn.Write([]byte(cmd))
 	if err != nil {
-		return fmt.Errorf("Error writing %v: %v", cmd, err)
+		return fmt.Errorf("error writing %v: %w", cmd, err)
 	}
 	buf := make([]byte, 1)
 	vc.conn.SetReadDeadline(time.Now().Add(time.Second))
 	n, err := vc.buf.Read(buf)
 	if err != nil || n == 0 {
-		return fmt.Errorf("Failed reading response to %v: %v", cmd, err)
+		return fmt.Errorf("failed reading response to %v: %w", cmd, err)
 	}
 	if buf[0] != ACK {
-		return fmt.Errorf("Unknown response from %v: %v", cmd, buf)
+		return fmt.Errorf("unknown response from %v: %v", cmd, buf)
 	}
 	return nil
 }
@@ -256,19 +260,19 @@ func (v *Conn) Close() error {
 	return v.conn.Close()
 }
 
-type LoopHandler func(rec *LoopRecord)
+type LoopHandler func(loopPkt []byte)
 
 func CollectDataForever(host string, handler LoopHandler) {
 	var vc *Conn
 	var err error
-	loopChan := make(chan *LoopRecord, 100)
+	loopChan := make(chan []byte, 100)
 	go loopRoutine(loopChan, handler)
 	errChan := make(chan error, 1)
 	for {
 		log.Printf("Connecting to %v...", host)
 		vc, err = Dial(host)
 		for err != nil {
-			log.Printf("Error connecting: %v\n", err)
+			log.Printf("Error connecting: %v", err)
 			log.Printf("Connect Retry in 60 seconds")
 			time.Sleep(time.Minute)
 			log.Printf("Connecting to %v...", host)
@@ -292,7 +296,7 @@ func CollectDataForever(host string, handler LoopHandler) {
 	}
 }
 
-func loopRoutine(loopChan chan *LoopRecord, handler LoopHandler) {
+func loopRoutine(loopChan chan []byte, handler LoopHandler) {
 	for lr := range loopChan {
 		handler(lr)
 	}

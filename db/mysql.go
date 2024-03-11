@@ -238,7 +238,7 @@ func NewMysql(user, password string) (*Mysql, error) {
 	gormDB, err := gorm.Open("mysql", connectString)
 	//db, err := sql.Open("mysql", connectString)
 	if err != nil {
-		return nil, fmt.Errorf("Error connecting to mysql: %v", err)
+		return nil, fmt.Errorf("error connecting to mysql: %w", err)
 	}
 
 	mysql := &Mysql{
@@ -253,14 +253,14 @@ func NewMysql(user, password string) (*Mysql, error) {
 	}
 	mysql.insertStmt, err = mysql.DB.Prepare(mysql.createInsertStmt())
 	if err != nil {
-		return nil, fmt.Errorf("Failed insert prepare: %v", err)
+		return nil, fmt.Errorf("failed insert prepare: %w", err)
 	}
 	return mysql, nil
 }
 
 func (m *Mysql) createInsertStmt() string {
 	placeholders := make([]string, len(insertCols))
-	for i, _ := range placeholders {
+	for i := range placeholders {
 		placeholders[i] = "?"
 	}
 	return fmt.Sprintf(insertSql, strings.Join(insertCols, ","), strings.Join(placeholders, ","))
@@ -269,19 +269,14 @@ func (m *Mysql) createInsertStmt() string {
 func (m *Mysql) init() error {
 	_, err := m.DB.Exec(summariesTable)
 	if err != nil {
-		return fmt.Errorf("Create summaries table error: %v", err)
+		return fmt.Errorf("create summaries table error: %w", err)
 	}
 	m.ORM.AutoMigrate(&LoopRecord{})
 	return nil
 }
 
-func (m *Mysql) Record(loopRecord *vantage.LoopRecord) {
-	resultDB := m.ORM.Save(&LoopRecord{
-		LoopRecord: *loopRecord,
-	})
-	if resultDB.Error != nil {
-		log.Printf("Failed saving loop record: %v", resultDB.Error)
-	}
+func (m *Mysql) Record(loopPkt []byte) {
+	loopRecord := vantage.ParseLoop(loopPkt)
 	finished := make([]*Rollup, 0, len(Intervals))
 	for idx, interval := range Intervals {
 		tint := loopRecord.Recorded.Truncate(interval)
@@ -313,7 +308,7 @@ func (m *Mysql) save(rollup *Rollup) {
 	_, err := m.insertStmt.Exec(s.insert()...)
 	if err != nil {
 		select {
-		case m.ErrChan <- fmt.Errorf("Insert err: %v\n", err):
+		case m.ErrChan <- fmt.Errorf("insert err: %w", err):
 		default:
 			log.Printf("Insert err: %v\n", err)
 		}
@@ -330,7 +325,7 @@ const selectRecent string = "select * from summaries where end_time > ? and summ
 func (m *Mysql) GetSummaries(reportSize time.Duration, summarySecondsForReport int) ([]*Summary, error) {
 	rows, err := m.DB.Query(selectRecent, time.Now().Add(-reportSize), summarySecondsForReport)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to select summaries: %v", err)
+		return nil, fmt.Errorf("failed to select summaries: %w", err)
 	}
 	slenmin := int(reportSize / (time.Duration(summarySecondsForReport) * time.Second))
 	ss := make([]*Summary, slenmin)
@@ -361,7 +356,7 @@ func (m *Mysql) GetSummaries(reportSize time.Duration, summarySecondsForReport i
 			&s.OutsideHumidityAvg)
 		if err != nil {
 			rows.Close()
-			return nil, fmt.Errorf("Error scanning summaries: %v", err)
+			return nil, fmt.Errorf("error scanning summaries: %w", err)
 		}
 		// set times to local
 		s.StartTime = s.StartTime.In(time.Local)

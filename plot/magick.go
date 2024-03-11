@@ -83,7 +83,7 @@ func currentData(c *db.Summary) error {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("Error running current: %v", err)
+		return fmt.Errorf("error running current: %w", err)
 	}
 	return nil
 }
@@ -96,7 +96,7 @@ func finishReport() error {
 	err := cmd.Run()
 	doneChan <- struct{}{}
 	if err != nil {
-		return fmt.Errorf("Error running finish: %v", err)
+		return fmt.Errorf("error running finish: %w", err)
 	}
 	return nil
 }

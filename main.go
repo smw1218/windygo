@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/smw1218/windygo/db"
 	"github.com/smw1218/windygo/plot"
+	"github.com/smw1218/windygo/raw"
 	"github.com/smw1218/windygo/vantage"
 )
 
@@ -18,8 +23,10 @@ func (dr *DataRecorder) record(loopRecord *vantage.LoopRecord) {
 
 func main() {
 	var host string
+	var rawDir string
 	var doDmp bool
 	flag.StringVar(&host, "h", "", "host:port of the Vantage device")
+	flag.StringVar(&rawDir, "raw", "", "directory to store raw data")
 	flag.BoolVar(&doDmp, "dmp", false, "run archive dump and exit")
 	flag.Parse()
 
@@ -44,6 +51,9 @@ func main() {
 
 		return
 	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	db, err := db.NewMysql("windygo", "")
 	if err != nil {
 		log.Fatalln(err)
@@ -54,13 +64,27 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	go vantage.CollectDataForever(host, db.Record)
+	rawRecorder := raw.NewRecorder(rawDir)
+
+	handler := func(loopPkt []byte) {
+		db.Record(loopPkt)
+		if rawDir != "" {
+			rawRecorder.Record(loopPkt)
+		}
+	}
+
+	go vantage.CollectDataForever(host, handler)
 	for {
 		select {
 		case err1 := <-gp.ErrChan:
 			log.Printf("GP error: %v\n", err1)
 		case err2 := <-db.ErrChan:
 			log.Printf("DB error: %v\n", err2)
+		case <-ctx.Done():
+			log.Println("Shutting down")
+			stop()
+			rawRecorder.Shutdown()
+			os.Exit(0)
 		}
 	}
 }

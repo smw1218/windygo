@@ -129,11 +129,11 @@ func (gp *GnuPlot) generator() {
 			gp.createPlot()
 			err := currentData(summary)
 			if err != nil {
-				gp.sendError(fmt.Errorf("Error running current: %v", err))
+				gp.sendError(fmt.Errorf("error running current: %w", err))
 			}
 			err = finishReport()
 			if err != nil {
-				gp.sendError(fmt.Errorf("Error running current: %v", err))
+				gp.sendError(fmt.Errorf("error running current: %w", err))
 			}
 		}
 	}
@@ -148,14 +148,14 @@ func (gp *GnuPlot) createPlot() {
 	var toWrite io.Writer = wr
 	f, err := os.OpenFile("gnuplot_input.data", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0664)
 	if err != nil {
-		gp.sendError(fmt.Errorf("Error running gnuplot: %v", err))
+		gp.sendError(fmt.Errorf("wrror running gnuplot: %w", err))
 	} else {
 		toWrite = io.MultiWriter(wr, f)
 	}
 	go gp.writeData(toWrite, wr)
 	err = cmd.Run()
 	if err != nil {
-		gp.sendError(fmt.Errorf("Error running gnuplot: %v", err))
+		gp.sendError(fmt.Errorf("wrror running gnuplot: %w", err))
 	}
 }
 
@@ -181,7 +181,7 @@ func (gp *GnuPlot) writeTimeSeries(w io.Writer, get valueGrabber) {
 			}
 			_, err := io.WriteString(w, fmt.Sprintf("%v\t%v\n", summary.EndTime.Format(gpFormat), yValue))
 			if err != nil {
-				gp.sendError(fmt.Errorf("Process write err: %v", err))
+				gp.sendError(fmt.Errorf("process write err: %w", err))
 			}
 		}
 	}
@@ -193,7 +193,7 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 	//write the script first
 	_, err := io.WriteString(w, fmt.Sprintf(gnuPlotScript, gp.currentMinute.EndTime.Format(titleFormat), timefmt, xfmt))
 	if err != nil {
-		gp.sendError(fmt.Errorf("Process write err: %v", err))
+		gp.sendError(fmt.Errorf("process write err: %w", err))
 	}
 
 	gp.writeTimeSeries(w, func(summary *db.Summary) interface{} {
@@ -220,7 +220,7 @@ func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
 		if summary != nil && summary.Valid() && summary.EndTime.Equal(summary.EndTime.Truncate(15*time.Minute)) {
 			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), cardinals[summary.WindDirAvgCardinal()]))
 			if err != nil {
-				gp.sendError(fmt.Errorf("Process write err: %v", err))
+				gp.sendError(fmt.Errorf("process write err: %w", err))
 			}
 		}
 	}
