@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -51,8 +50,9 @@ func main() {
 
 		return
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+
+	notifyChan := make(chan os.Signal, 1)
+	signal.Notify(notifyChan, os.Interrupt, syscall.SIGTERM)
 
 	db, err := db.NewMysql("windygo", "")
 	if err != nil {
@@ -80,9 +80,9 @@ func main() {
 			log.Printf("GP error: %v\n", err1)
 		case err2 := <-db.ErrChan:
 			log.Printf("DB error: %v\n", err2)
-		case <-ctx.Done():
+		case <-notifyChan:
 			log.Println("Shutting down")
-			stop()
+			signal.Reset()
 			rawRecorder.Shutdown()
 			os.Exit(0)
 		}
