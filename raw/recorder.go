@@ -92,8 +92,8 @@ func (r *Recorder) open(fileName string) (*os.File, error) {
 func (r *Recorder) fileName(now time.Time) string {
 	return path.Join(r.baseDir,
 		strconv.Itoa(now.Year()),
-		strconv.Itoa(int(now.Month())),
-		strconv.Itoa(now.Day()),
+		fmt.Sprintf("%02d", now.Month()),
+		fmt.Sprintf("%02d", now.Day()),
 		fmt.Sprintf("%02d.rec", now.Hour()),
 	)
 }
