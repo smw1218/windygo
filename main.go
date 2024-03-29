@@ -24,7 +24,7 @@ func main() {
 	flag.StringVar(&host, "h", "", "host:port of the Vantage device")
 	flag.StringVar(&rawDir, "raw", "", "directory to store raw data")
 	flag.BoolVar(&doDmp, "dmp", false, "run archive dump and exit")
-	flag.StringVar(&loopPktFile, "f", "", "file to read loop packets from")
+	flag.StringVar(&loopPktFile, "f", "", "file to read loop packets from, - for stdin")
 	flag.Parse()
 
 	// On my unit, dmp didn't work (it was missing random bytes)
@@ -88,21 +88,24 @@ func dmp(host string) {
 	}
 
 	ars, err := vc.GetArchiveRecords()
-	if ars != nil {
-		for _, ar := range ars {
-			fmt.Printf("I:%v\tJ:%v\t%v\t%v\t%v\n", ar.ArchivePage, ar.ArchivePageRecord, ar.ArchiveTime, ar.WindAvg, ar.OutsideTemp)
-		}
-	}
 	if err != nil {
 		log.Fatalf("Error getting archive: %v\n", err)
+	}
+	for _, ar := range ars {
+		fmt.Printf("I:%v\tJ:%v\t%v\t%v\t%v\n", ar.ArchivePage, ar.ArchivePageRecord, ar.ArchiveTime, ar.WindAvg, ar.OutsideTemp)
 	}
 }
 
 func printLoopFile(fileName string) error {
-	f, err := os.Open(fileName)
-	if err != nil {
-		return fmt.Errorf("error opening loop packet file: %w", err)
+	f := os.Stdin
+	var err error
+	if fileName != "-" {
+		f, err = os.Open(fileName)
+		if err != nil {
+			return fmt.Errorf("error opening loop packet file: %w", err)
+		}
 	}
+
 	defer f.Close()
 	bufferdReader := bufio.NewReader(f)
 	var loopPkt []byte = make([]byte, vantage.LOOP_RECORD_SIZE)
