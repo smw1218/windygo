@@ -94,6 +94,6 @@ func (r *Recorder) fileName(now time.Time) string {
 		strconv.Itoa(now.Year()),
 		strconv.Itoa(int(now.Month())),
 		strconv.Itoa(now.Day()),
-		fmt.Sprintf("%d.rec", now.Hour()),
+		fmt.Sprintf("%02d.rec", now.Hour()),
 	)
 }
