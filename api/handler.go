@@ -46,6 +46,10 @@ func (p *Plotter) FullPlot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(summaries) == 0 {
+		http.Error(w, "no data found", http.StatusNotFound)
+		return
+	}
 	err = plot.CreateFullReport(summaries, summaries[len(summaries)-1])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
