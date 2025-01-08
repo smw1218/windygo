@@ -17,7 +17,7 @@ Here's the [Vantage Spec](http://www.davisnet.com/support/weather/download/Vanta
 ## Installation
 Dependencies: 
 
-     sudo apt-get install gnuplot imagemagick mariadb-server fonts-roboto golang ftp git
+     sudo apt-get install gnuplot imagemagick mariadb-server fonts-roboto golang ftp git pngcrush
 
 ### Building
 It's ok to just install go in the home directory.  Set you GOROOT and PATH to point to your new install:

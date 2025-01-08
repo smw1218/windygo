@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/smw1218/windygo/db"
@@ -50,4 +51,12 @@ func (p *Plotter) FullPlot(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	f, err := os.Open("windreport.png")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+	http.ServeContent(w, r, "windreport", time.Now(), f)
 }
