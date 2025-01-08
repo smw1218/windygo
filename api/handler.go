@@ -16,6 +16,11 @@ func CreateRoutes(mysql *db.Mysql) http.Handler {
 	return muxer
 }
 
+// Plotter creates a full report and returns the image. This
+// is only for testing.
+// Since this writes a file and runs shell commands on it, it's
+// safe for concurrent use and will also run the finish script so
+// will override the current report
 type Plotter struct {
 	mysql *db.Mysql
 }

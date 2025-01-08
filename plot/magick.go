@@ -58,6 +58,9 @@ current.png
 var splitter = regexp.MustCompile(`[^\s']+|'[^']*'`)
 var oneLineCmd = strings.Replace(currentCommand, "\\\n", "", -1)
 
+// currentData creates an image that shows the summary of the current
+// minute. It uses ImageMagick to create a png file that is then
+// composited with the graph in the finish script.
 func currentData(c *db.Summary) error {
 	formatted := fmt.Sprintf(oneLineCmd,
 		c.WindAvg,

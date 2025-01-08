@@ -12,6 +12,7 @@ import (
 	"github.com/smw1218/windygo/vantage"
 )
 
+// Recorder records raw loop packets to files with a timestamp
 type Recorder struct {
 	baseDir     string
 	writeMutex  sync.Mutex

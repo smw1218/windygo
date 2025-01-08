@@ -96,6 +96,12 @@ var barTrendFont = map[byte]string{
 	80:  "Roboto",
 }
 
+// GnuPlot creates a time series plot every minute. The plot only shows 5 minute averages but
+// you can see the time gap at the end of the graph. It includes wind avg, lull and gust and also
+// direction using a custom arrow font.
+// It has a ring buffer of summaries so it can plot the last 12 hours every minute.
+// Initially it queries the database to get exisitng summaries
+// on boot. The summaries are then pulled directly from the mysql.SavedChan as they're created.
 type GnuPlot struct {
 	// TODO mutex
 	saved         []*db.Summary
@@ -155,24 +161,21 @@ func (gp *GnuPlot) sendError(err error) {
 type valueGrabber func(summary *db.Summary) interface{}
 
 func CreateFullReport(summaries []*db.Summary, currentMinute *db.Summary) error {
-	start := time.Now()
 	err := CreatePlot(summaries, currentMinute)
 	if err != nil {
 		return fmt.Errorf("error creating plot: %w", err)
 	}
-	log.Printf("Created plot in %v", time.Since(start))
-	start = time.Now()
+
 	err = currentData(currentMinute)
 	if err != nil {
 		return fmt.Errorf("error running current: %w", err)
 	}
-	log.Printf("Current data in %v", time.Since(start))
-	start = time.Now()
+
 	err = finishReport()
 	if err != nil {
 		return fmt.Errorf("error finishing report: %w", err)
 	}
-	log.Printf("Finished report in %v", time.Since(start))
+
 	return nil
 }
 
@@ -210,12 +213,13 @@ func CreatePlot(summaries []*db.Summary, currentMinute *db.Summary) error {
 
 func writeData(summaries []*db.Summary, currentMinute *db.Summary, w io.Writer, closeme io.Closer) error {
 	defer closeme.Close()
-	//write the script first
+	// write the script header first
 	_, err := io.WriteString(w, fmt.Sprintf(gnuPlotScript, currentMinute.EndTime.Format(titleFormat), timefmt, xfmt))
 	if err != nil {
 		return fmt.Errorf("process write err: %w", err)
 	}
 
+	// write the series data; the order corresponsd to their definitions in the gnuPlotScript template
 	err = writeTimeSeries(summaries, w, func(summary *db.Summary) interface{} {
 		return summary.WindAvg
 	})
@@ -238,6 +242,8 @@ func writeData(summaries []*db.Summary, currentMinute *db.Summary, w io.Writer, 
 	}
 
 	// write fake datapoint to increase the max range
+	// this just adds a little white space at the right so the graph is easier to read
+	// for the most current point
 	tm := currentMinute.EndTime.Add(15 * time.Minute).Truncate(15 * time.Minute)
 	_, err = io.WriteString(w, fmt.Sprintf("%s\t0\n", tm.Format(gpFormat)))
 	if err != nil {
@@ -248,7 +254,8 @@ func writeData(summaries []*db.Summary, currentMinute *db.Summary, w io.Writer, 
 		return fmt.Errorf("process write err: %w", err)
 	}
 
-	// write the direction data
+	// write the direction data (arrows font)
+	// These are only shown every 15 minutes so it's not so busy
 	for _, summary := range summaries {
 		if summary != nil && summary.Valid() && summary.EndTime.Equal(summary.EndTime.Truncate(15*time.Minute)) {
 			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), cardinals[summary.WindDirAvgCardinal()]))
@@ -285,7 +292,6 @@ func writeTimeSeries(summaries []*db.Summary, w io.Writer, get valueGrabber) err
 	return nil
 }
 
-// TODO make template for changing things
 const timefmt = `%Y-%m-%d_%H:%M:%S`
 const xfmt = `%l%p\n%m/%d`
 const titleFormat = "1/2 3:04pm"
