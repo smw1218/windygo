@@ -40,7 +40,7 @@ func (p *Plotter) FullPlot(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	summaries, err := p.mysql.GetSummaries(startTime.Add(-reportSize), reportSize, 300)
+	summaries, err := p.mysql.GetSummaries(startTime, reportSize, 300)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
