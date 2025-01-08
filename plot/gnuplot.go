@@ -155,18 +155,24 @@ func (gp *GnuPlot) sendError(err error) {
 type valueGrabber func(summary *db.Summary) interface{}
 
 func CreateFullReport(summaries []*db.Summary, currentMinute *db.Summary) error {
+	start := time.Now()
 	err := CreatePlot(summaries, currentMinute)
 	if err != nil {
 		return fmt.Errorf("error creating plot: %w", err)
 	}
+	log.Printf("Created plot in %v", time.Since(start))
+	start = time.Now()
 	err = currentData(currentMinute)
 	if err != nil {
 		return fmt.Errorf("error running current: %w", err)
 	}
+	log.Printf("Current data in %v", time.Since(start))
+	start = time.Now()
 	err = finishReport()
 	if err != nil {
 		return fmt.Errorf("error finishing report: %w", err)
 	}
+	log.Printf("Finished report in %v", time.Since(start))
 	return nil
 }
 
