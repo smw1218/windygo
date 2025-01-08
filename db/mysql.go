@@ -320,10 +320,10 @@ func (m *Mysql) save(rollup *Rollup) {
 }
 
 // 5 minutes
-const selectRecent string = "select * from summaries where end_time > ? and summary_seconds = ? order by end_time desc"
+const selectRecent string = "select * from summaries where end_time > ? and summary_seconds = ? order by end_time"
 
-func (m *Mysql) GetSummaries(reportSize time.Duration, summarySecondsForReport int) ([]*Summary, error) {
-	rows, err := m.DB.Query(selectRecent, time.Now().Add(-reportSize), summarySecondsForReport)
+func (m *Mysql) GetSummaries(startTime time.Time, reportSize time.Duration, summarySecondsForReport int) ([]*Summary, error) {
+	rows, err := m.DB.Query(selectRecent, startTime, summarySecondsForReport)
 	if err != nil {
 		return nil, fmt.Errorf("failed to select summaries: %w", err)
 	}
@@ -367,10 +367,6 @@ func (m *Mysql) GetSummaries(reportSize time.Duration, summarySecondsForReport i
 	// warn if we have less than half the records
 	if i < (slenmin / 2) {
 		log.Printf("Not enough summary records for report: %v/%v", i, slenmin)
-	}
-	// reverse the array so it's in chronological order and any missing vals are at the beginning
-	for j := 0; j < slenmin/2; j++ {
-		ss[j], ss[slenmin-j-1] = ss[slenmin-j-1], ss[j]
 	}
 	return ss, nil
 }
