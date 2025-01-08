@@ -52,6 +52,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	db.ORM.Debug()
 
 	gp, err := plot.NewGnuPlot(db)
 	if err != nil {
