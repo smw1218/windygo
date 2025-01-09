@@ -320,57 +320,59 @@ func (m *Mysql) save(rollup *Rollup) {
 }
 
 // 5 minutes
-const selectRecent string = "select * from summaries where end_time > ? and summary_seconds = ? order by end_time desc"
+const selectRecent string = "select * from summaries where end_time > ? and summary_seconds = ? order by end_time limit ?"
 
-func (m *Mysql) GetSummaries(reportSize time.Duration, summarySecondsForReport int) ([]*Summary, error) {
-	rows, err := m.DB.Query(selectRecent, time.Now().Add(-reportSize), summarySecondsForReport)
+func (m *Mysql) GetSummaries(startTime time.Time, reportSize time.Duration, summarySecondsForReport int) ([]*Summary, error) {
+	slenmin := int(reportSize / (time.Duration(summarySecondsForReport) * time.Second))
+	var ss []*Summary
+	err := m.ORM.Raw(selectRecent, startTime, summarySecondsForReport, slenmin).Find(&ss).Error
+	//rows, err := m.DB.Query(selectRecent, startTime, summarySecondsForReport, slenmin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to select summaries: %w", err)
 	}
-	slenmin := int(reportSize / (time.Duration(summarySecondsForReport) * time.Second))
-	ss := make([]*Summary, slenmin)
-	i := 0
-	for rows.Next() {
-		if i == slenmin {
-			rows.Close()
-			log.Printf("Got too many summary records from DB")
-			break
+	/*
+		ss := make([]*Summary, slenmin)
+		i := 0
+		for rows.Next() {
+			if i == slenmin {
+				rows.Close()
+				log.Printf("Got too many summary records from DB")
+				break
+			}
+			s := &Summary{}
+			err := rows.Scan(
+				&s.ID,
+				&s.StartTime,
+				&s.EndTime,
+				&s.Measurements,
+				&s.SummarySeconds,
+				&s.WindAvg,
+				&s.WindGust,
+				&s.WindLull,
+				&s.WindStddev,
+				&s.WindDirectionAvg,
+				&s.WindDirectionMin,
+				&s.WindDirectionMax,
+				&s.BarometerAvg,
+				&s.BarometerStart,
+				&s.OutsideTempAvg,
+				&s.OutsideHumidityAvg)
+			if err != nil {
+				rows.Close()
+				return nil, fmt.Errorf("error scanning summaries: %w", err)
+			}
+			// set times to local
+			s.StartTime = s.StartTime.In(time.Local)
+			s.EndTime = s.EndTime.In(time.Local)
+			ss[i] = s
+			i++
 		}
-		s := &Summary{}
-		err := rows.Scan(
-			&s.ID,
-			&s.StartTime,
-			&s.EndTime,
-			&s.Measurements,
-			&s.SummarySeconds,
-			&s.WindAvg,
-			&s.WindGust,
-			&s.WindLull,
-			&s.WindStddev,
-			&s.WindDirectionAvg,
-			&s.WindDirectionMin,
-			&s.WindDirectionMax,
-			&s.BarometerAvg,
-			&s.BarometerStart,
-			&s.OutsideTempAvg,
-			&s.OutsideHumidityAvg)
-		if err != nil {
-			rows.Close()
-			return nil, fmt.Errorf("error scanning summaries: %w", err)
-		}
-		// set times to local
-		s.StartTime = s.StartTime.In(time.Local)
-		s.EndTime = s.EndTime.In(time.Local)
-		ss[i] = s
-		i++
-	}
+	*/
 	// warn if we have less than half the records
+	i := len(ss)
 	if i < (slenmin / 2) {
 		log.Printf("Not enough summary records for report: %v/%v", i, slenmin)
 	}
-	// reverse the array so it's in chronological order and any missing vals are at the beginning
-	for j := 0; j < slenmin/2; j++ {
-		ss[j], ss[slenmin-j-1] = ss[slenmin-j-1], ss[j]
-	}
+
 	return ss, nil
 }

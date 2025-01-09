@@ -17,15 +17,12 @@ Here's the [Vantage Spec](http://www.davisnet.com/support/weather/download/Vanta
 ## Installation
 Dependencies: 
 
-     sudo apt-get install gnuplot imagemagick mariadb-server fonts-roboto golang ftp git
+     sudo apt-get install gnuplot imagemagick mariadb-server fonts-roboto golang ftp git pngcrush
 
 ### Building
-It's ok to just install go in the home directory.  Set you GOROOT and PATH to point to your new install:
+It's ok to just install go in the home directory.
   
-     mkdir -p go go/src go/bin go/pkg
-     export GOPATH=$(pwd)/go
-     go get github.com/smw1218/windygo
-     go install github.com/smw1218/windygo
+     go install github.com/smw1218/windygo@latest
 
 If everything went well, the binary should be in gopath/bin.
 
@@ -46,7 +43,7 @@ I also created a custom font using [fontcustom](http://fontcustom.com/). It prov
 ### Mysql/MariaDB
 You have to create the database for windygo by hand, but it will do the rest. Launch mysql as root and create it:
 
-    mysql -u root < $GOPATH/src/github.com/smw1218/windygo/mysql_setup.sql
+    mysql -u root < mysql_setup.sql
 
 I didn't implement using a password, if someone files an issue I'll do it.
 
@@ -57,7 +54,7 @@ I didn't implement using a password, if someone files an issue I'll do it.
 ## Why?
 Didn't I know about [weewx](http://www.weewx.com/) or [wview](http://www.wviewweather.com/)?  I looked at both, but the data I wanted from either one seemed difficult to get setup (though probably not as difficult as writing this).  The hard part is around the reports.  I wanted to get an update report every minute but the built in summaries for the Vantage Vue are 5 minutes minimum.  Both weewx and wview tie their report interval to the wether station so I couldn't get more frequent updates.  
 
-Also, I thought it would be a fun go project.
+Also, I thought it would be a fun Go project.
 
 ## Bugs
 I implemented the DMP and DMPAFT commands but both seem to have issues. The DMP returns several pages ok but then a page is missing a byte and the whole output gets offset.  I figured it out but I didn't see any way to recover.

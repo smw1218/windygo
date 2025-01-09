@@ -96,6 +96,12 @@ var barTrendFont = map[byte]string{
 	80:  "Roboto",
 }
 
+// GnuPlot creates a time series plot every minute. The plot only shows 5 minute averages but
+// you can see the time gap at the end of the graph. It includes wind avg, lull and gust and also
+// direction using a custom arrow font.
+// It has a ring buffer of summaries so it can plot the last 12 hours every minute.
+// Initially it queries the database to get exisitng summaries
+// on boot. The summaries are then pulled directly from the mysql.SavedChan as they're created.
 type GnuPlot struct {
 	// TODO mutex
 	saved         []*db.Summary
@@ -108,7 +114,8 @@ type GnuPlot struct {
 func NewGnuPlot(mysql *db.Mysql) (*GnuPlot, error) {
 	gp := &GnuPlot{}
 	var err error
-	gp.saved, err = mysql.GetSummaries(12*time.Hour, summarySecondsForGraph)
+	reportSize := 12 * time.Hour
+	gp.saved, err = mysql.GetSummaries(time.Now().Add(-reportSize), reportSize, summarySecondsForGraph)
 	if err != nil {
 		return nil, err
 	}
@@ -126,37 +133,21 @@ func (gp *GnuPlot) generator() {
 			gp.nextSave++
 		} else if summary.SummarySeconds == summarySecondsForGeneration {
 			gp.currentMinute = summary
-			gp.createPlot()
-			err := currentData(summary)
+			err := CreateFullReport(gp.LinearSummaries(), summary)
 			if err != nil {
-				gp.sendError(fmt.Errorf("error running current: %w", err))
-			}
-			err = finishReport()
-			if err != nil {
-				gp.sendError(fmt.Errorf("error running current: %w", err))
+				gp.sendError(err)
 			}
 		}
 	}
 }
 
-func (gp *GnuPlot) createPlot() {
-	//log.Printf("Creating plot")
-	cmd := exec.Command("gnuplot")
-	rd, wr := io.Pipe()
-	cmd.Stdin = rd
-	cmd.Stderr = os.Stderr
-	var toWrite io.Writer = wr
-	f, err := os.OpenFile("gnuplot_input.data", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0664)
-	if err != nil {
-		gp.sendError(fmt.Errorf("wrror running gnuplot: %w", err))
-	} else {
-		toWrite = io.MultiWriter(wr, f)
-	}
-	go gp.writeData(toWrite, wr)
-	err = cmd.Run()
-	if err != nil {
-		gp.sendError(fmt.Errorf("wrror running gnuplot: %w", err))
-	}
+func (gp *GnuPlot) LinearSummaries() []*db.Summary {
+	lensaved := len(gp.saved)
+	newSummaries := make([]*db.Summary, 0, lensaved)
+	ringStart := gp.nextSave % lensaved
+	newSummaries = append(newSummaries, gp.saved[ringStart:]...)
+	newSummaries = append(newSummaries, gp.saved[:ringStart]...)
+	return newSummaries
 }
 
 func (gp *GnuPlot) sendError(err error) {
@@ -169,11 +160,120 @@ func (gp *GnuPlot) sendError(err error) {
 
 type valueGrabber func(summary *db.Summary) interface{}
 
-func (gp *GnuPlot) writeTimeSeries(w io.Writer, get valueGrabber) {
-	lensaved := len(gp.saved)
+func CreateFullReport(summaries []*db.Summary, currentMinute *db.Summary) error {
+	err := CreatePlot(summaries, currentMinute)
+	if err != nil {
+		return fmt.Errorf("error creating plot: %w", err)
+	}
+
+	err = currentData(currentMinute)
+	if err != nil {
+		return fmt.Errorf("error running current: %w", err)
+	}
+
+	err = finishReport()
+	if err != nil {
+		return fmt.Errorf("error finishing report: %w", err)
+	}
+
+	return nil
+}
+
+func CreatePlot(summaries []*db.Summary, currentMinute *db.Summary) error {
+	//log.Printf("Creating plot")
+	cmd := exec.Command("gnuplot")
+	rd, wr := io.Pipe()
+	cmd.Stdin = rd
+	cmd.Stderr = os.Stderr
+	var toWrite io.Writer = wr
+	f, err := os.OpenFile("gnuplot_input.data", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0664)
+	if err != nil {
+		return fmt.Errorf("error running gnuplot: %w", err)
+	}
+	toWrite = io.MultiWriter(wr, f)
+
+	errChan := make(chan error, 1)
+	go func() {
+		err := writeData(summaries, currentMinute, toWrite, wr)
+		if err != nil {
+			errChan <- fmt.Errorf("error writing data: %w", err)
+		}
+	}()
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("error running gnuplot: %w", err)
+	}
+	select {
+	case err := <-errChan:
+		return err
+	default:
+		return nil
+	}
+}
+
+func writeData(summaries []*db.Summary, currentMinute *db.Summary, w io.Writer, closeme io.Closer) error {
+	defer closeme.Close()
+	// write the script header first
+	_, err := io.WriteString(w, fmt.Sprintf(gnuPlotScript, currentMinute.EndTime.Format(titleFormat), timefmt, xfmt))
+	if err != nil {
+		return fmt.Errorf("process write err: %w", err)
+	}
+
+	// write the series data; the order corresponsd to their definitions in the gnuPlotScript template
+	err = writeTimeSeries(summaries, w, func(summary *db.Summary) interface{} {
+		return summary.WindAvg
+	})
+	if err != nil {
+		return fmt.Errorf("writeTimeSeries WindAvg err: %w", err)
+	}
+
+	err = writeTimeSeries(summaries, w, func(summary *db.Summary) interface{} {
+		return summary.WindLull
+	})
+	if err != nil {
+		return fmt.Errorf("writeTimeSeries WindLull err: %w", err)
+	}
+
+	err = writeTimeSeries(summaries, w, func(summary *db.Summary) interface{} {
+		return summary.WindGust
+	})
+	if err != nil {
+		return fmt.Errorf("writeTimeSeries WindGust err: %w", err)
+	}
+
+	// write fake datapoint to increase the max range
+	// this just adds a little white space at the right so the graph is easier to read
+	// for the most current point
+	tm := currentMinute.EndTime.Add(15 * time.Minute).Truncate(15 * time.Minute)
+	_, err = io.WriteString(w, fmt.Sprintf("%s\t0\n", tm.Format(gpFormat)))
+	if err != nil {
+		return fmt.Errorf("process write err: %w", err)
+	}
+	_, err = io.WriteString(w, "e\n")
+	if err != nil {
+		return fmt.Errorf("process write err: %w", err)
+	}
+
+	// write the direction data (arrows font)
+	// These are only shown every 15 minutes so it's not so busy
+	for _, summary := range summaries {
+		if summary != nil && summary.Valid() && summary.EndTime.Equal(summary.EndTime.Truncate(15*time.Minute)) {
+			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), cardinals[summary.WindDirAvgCardinal()]))
+			if err != nil {
+				return fmt.Errorf("process write err: %w", err)
+			}
+		}
+	}
+	_, err = io.WriteString(w, "e\n")
+	if err != nil {
+		return fmt.Errorf("process write err: %w", err)
+	}
+	return nil
+}
+
+func writeTimeSeries(summaries []*db.Summary, w io.Writer, get valueGrabber) error {
 	// write the avg data
-	for i := 0; i < lensaved; i++ {
-		summary := gp.saved[(i+gp.nextSave)%lensaved]
+	for _, summary := range summaries {
 		if summary != nil {
 			var yValue interface{} = get(summary)
 			if !summary.Valid() {
@@ -181,53 +281,17 @@ func (gp *GnuPlot) writeTimeSeries(w io.Writer, get valueGrabber) {
 			}
 			_, err := io.WriteString(w, fmt.Sprintf("%v\t%v\n", summary.EndTime.Format(gpFormat), yValue))
 			if err != nil {
-				gp.sendError(fmt.Errorf("process write err: %w", err))
+				return fmt.Errorf("process write err: %w", err)
 			}
 		}
 	}
-	io.WriteString(w, "e\n")
-}
-
-func (gp *GnuPlot) writeData(w io.Writer, closeme *io.PipeWriter) {
-	defer closeme.Close()
-	//write the script first
-	_, err := io.WriteString(w, fmt.Sprintf(gnuPlotScript, gp.currentMinute.EndTime.Format(titleFormat), timefmt, xfmt))
+	_, err := io.WriteString(w, "e\n")
 	if err != nil {
-		gp.sendError(fmt.Errorf("process write err: %w", err))
+		return fmt.Errorf("process write err: %w", err)
 	}
-
-	gp.writeTimeSeries(w, func(summary *db.Summary) interface{} {
-		return summary.WindAvg
-	})
-
-	gp.writeTimeSeries(w, func(summary *db.Summary) interface{} {
-		return summary.WindLull
-	})
-
-	gp.writeTimeSeries(w, func(summary *db.Summary) interface{} {
-		return summary.WindGust
-	})
-
-	// write fake datapoint to increase the max range
-	tm := gp.currentMinute.EndTime.Add(15 * time.Minute).Truncate(15 * time.Minute)
-	io.WriteString(w, fmt.Sprintf("%s\t0\n", tm.Format(gpFormat)))
-	io.WriteString(w, "e\n")
-
-	lensaved := len(gp.saved)
-	// write the direction data
-	for i := 0; i < lensaved; i++ {
-		summary := gp.saved[(i+gp.nextSave)%lensaved]
-		if summary != nil && summary.Valid() && summary.EndTime.Equal(summary.EndTime.Truncate(15*time.Minute)) {
-			_, err = io.WriteString(w, fmt.Sprintf("%s\t%v\n", summary.EndTime.Format(gpFormat), cardinals[summary.WindDirAvgCardinal()]))
-			if err != nil {
-				gp.sendError(fmt.Errorf("process write err: %w", err))
-			}
-		}
-	}
-	io.WriteString(w, "e\n")
+	return nil
 }
 
-// TODO make template for changing things
 const timefmt = `%Y-%m-%d_%H:%M:%S`
 const xfmt = `%l%p\n%m/%d`
 const titleFormat = "1/2 3:04pm"

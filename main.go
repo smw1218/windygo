@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/smw1218/windygo/api"
 	"github.com/smw1218/windygo/db"
 	"github.com/smw1218/windygo/plot"
 	"github.com/smw1218/windygo/raw"
@@ -50,6 +52,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	//db.ORM.LogMode(true)
 
 	gp, err := plot.NewGnuPlot(db)
 	if err != nil {
@@ -64,6 +67,12 @@ func main() {
 			rawRecorder.Record(loopPkt)
 		}
 	}
+
+	apiHandler := api.CreateRoutes(db)
+	go func() {
+		log.Println("Listening on port 4444")
+		log.Fatal(http.ListenAndServe(":4444", apiHandler))
+	}()
 
 	go vantage.CollectDataForever(host, handler)
 	for {
