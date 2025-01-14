@@ -374,6 +374,10 @@ func (m *Mysql) GetSummaries(startTime time.Time, reportSize time.Duration, summ
 		log.Printf("Not enough summary records for report: %v/%v", i, slenmin)
 	}
 	ret := make([]*Summary, slenmin)
-	copy(ret, ss)
+	for i, s := range ss {
+		s.StartTime = s.StartTime.In(time.Local)
+		s.EndTime = s.EndTime.In(time.Local)
+		ret[i] = s
+	}
 	return ret, nil
 }
