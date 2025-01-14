@@ -190,6 +190,7 @@ func CreatePlot(summaries []*db.Summary, currentMinute *db.Summary) error {
 	if err != nil {
 		return fmt.Errorf("error running gnuplot: %w", err)
 	}
+	defer f.Close()
 	toWrite = io.MultiWriter(wr, f)
 
 	errChan := make(chan error, 1)
