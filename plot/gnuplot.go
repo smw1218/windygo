@@ -147,7 +147,6 @@ func (gp *GnuPlot) LinearSummaries() []*db.Summary {
 	ringStart := gp.nextSave % lensaved
 	newSummaries = append(newSummaries, gp.saved[ringStart:]...)
 	newSummaries = append(newSummaries, gp.saved[:ringStart]...)
-	log.Printf("LinearSummaries: %v", newSummaries)
 	return newSummaries
 }
 
