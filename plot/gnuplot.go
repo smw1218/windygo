@@ -147,6 +147,7 @@ func (gp *GnuPlot) LinearSummaries() []*db.Summary {
 	ringStart := gp.nextSave % lensaved
 	newSummaries = append(newSummaries, gp.saved[ringStart:]...)
 	newSummaries = append(newSummaries, gp.saved[:ringStart]...)
+	log.Printf("LinearSummaries: %v", newSummaries)
 	return newSummaries
 }
 
@@ -190,6 +191,7 @@ func CreatePlot(summaries []*db.Summary, currentMinute *db.Summary) error {
 	if err != nil {
 		return fmt.Errorf("error running gnuplot: %w", err)
 	}
+	defer f.Close()
 	toWrite = io.MultiWriter(wr, f)
 
 	errChan := make(chan error, 1)
